@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TurboType: Range Update</title>
+    <style>body { margin: 0; background-color: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }</style>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+</head>
+<body>
+
+<script>
+const config = {
+    type: Phaser.AUTO, width: 800, height: 400,
+    physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+    scene: { preload: preload, create: create, update: update }
+};
+
+const game = new Phaser.Game(config);
+
+// --- DESIGN VARIABLES ---
+const PLAYER_MAX_HEALTH = 100;
+const ENEMY_DAMAGE = 20;
+const ENEMY_SPEED_MIN = 100;
+const ENEMY_SPEED_MAX = 200;
+const ATTACK_RANGE_ENEMY = 190; // Distance where enemy starts swinging sword
+const KILL_RANGE_PLAYER = 250;  // Distance where YOU can hit the enemy
+
+// --- GLOBAL VARIABLES ---
+let player;
+let enemies;
+let background;
+let scrollSpeed = 0;
+let currentHealth = PLAYER_MAX_HEALTH;
+let healthBar;
+let currentWord = "START";
+let userInput = "";
+let scoreText, wordText;
+let isGameOver = false;
+
+function preload () {
+    this.load.image('city', 'assets/bg.png'); 
+    // Ensure all 3 files are loaded correctly
+    this.load.spritesheet('hero_idle', 'assets/player_idle.png', { frameWidth: 96, frameHeight: 96 });
+    this.load.spritesheet('hero_run', 'assets/player_run.png', { frameWidth: 96, frameHeight: 96 });
+    this.load.spritesheet('hero_attack', 'assets/player_attack.png', { frameWidth: 96, frameHeight: 96 });
+}
+
+function create () {
+    background = this.add.tileSprite(400, 200, 800, 400, 'city');
+
+    // --- ANIMATIONS ---
+    this.anims.create({ key: 'idle', frames: this.anims.generateFrameNumbers('hero_idle', { start: 0, end: 9 }), frameRate: 10, repeat: -1 });
+    this.anims.create({ key: 'run', frames: this.anims.generateFrameNumbers('hero_run', { start: 0, end: 7 }), frameRate: 12, repeat: -1 });
+    this.anims.create({ key: 'attack', frames: this.anims.generateFrameNumbers('hero_attack', { start: 0, end: 5 }), frameRate: 15, repeat: 0 });
+
+    // --- PLAYER ---
+    player = this.physics.add.sprite(150, 345, 'hero_idle').setScale(2).play('idle');
+    player.body.setSize(30, 80); 
+
+    // --- ENEMIES ---
+    enemies = this.physics.add.group();
+    this.time.addEvent({ delay: 3000, callback: spawnEnemy, callbackScope: this, loop: true });
+
+    // --- UI ---
+    this.add.rectangle(150, 50, 200, 20, 0x555555).setOrigin(0, 0.5);
+    healthBar = this.add.rectangle(150, 50, 200, 20, 0x00ff00).setOrigin(0, 0.5);
+    this.add.text(100, 50, "HP", { fontSize: '20px', fontStyle: 'bold' }).setOrigin(0.5);
+
+    wordText = this.add.text(400, 100, currentWord, { fontSize: '40px', fill: '#fff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
+    scoreText = this.add.text(400, 350, 'TYPE "START"', { fontSize: '20px', fill: '#0f0', backgroundColor: '#000' }).setOrigin(0.5);
+
+    // --- INPUT ---
+    this.input.keyboard.on('keydown', (event) => {
+        if (isGameOver) return;
+        if (event.keyCode >= 65 && event.keyCode <= 90) {
+            userInput += event.key.toUpperCase();
+            checkInput();
+        }
+    });
+
+    this.physics.add.overlap(player, enemies, takeDamage, null, this);
+    
+    player.on('animationcomplete', function (anim) {
+        if (anim.key === 'attack') {
+            if (scrollSpeed > 0) player.play('run'); else player.play('idle');
+        }
+    }, this);
+}
+
+function update () {
+    if (isGameOver) return;
+
+    background.tilePositionX += scrollSpeed;
+
+    // Player Movement Logic
+    if (player.anims.currentAnim.key !== 'attack') {
+        if (scrollSpeed > 0.1) {
+            player.play('run', true);
+            scrollSpeed *= 0.98;
+        } else {
+            scrollSpeed = 0;
+            player.play('idle', true);
+        }
+    }
+
+    // --- NEW LOGIC: ENEMY BEHAVIOR LOOP ---
+    // We loop through every active enemy to check their distance
+    enemies.children.iterate(function (enemy) {
+        if (enemy && enemy.active) {
+            // Calculate distance between Enemy and Player
+            let dist = Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y);
+
+            // If close enough AND not already attacking, switch to attack!
+            if (dist < ATTACK_RANGE_ENEMY && enemy.anims.currentAnim.key !== 'attack') {
+                enemy.play('attack');
+            } 
+            // If they are far away, keep running
+            else if (dist >= ATTACK_RANGE_ENEMY && enemy.anims.currentAnim.key !== 'run') {
+                enemy.play('run');
+            }
+        }
+    });
+}
+
+function spawnEnemy() {
+    if (isGameOver) return;
+    let enemy = enemies.create(850, 345, 'hero_run'); 
+    enemy.setScale(2);
+    enemy.setFlipX(true); 
+    enemy.setTint(0xff0000); 
+    enemy.play('run'); 
+    let randomSpeed = Phaser.Math.Between(ENEMY_SPEED_MIN, ENEMY_SPEED_MAX);
+    enemy.setVelocityX(-randomSpeed);
+    enemy.checkWorldBounds = true;
+    enemy.outOfBoundsKill = true;
+}
+
+function checkInput() {
+    scoreText.setText(userInput);
+
+    if (userInput === currentWord) {
+        // SUCCESS
+        scrollSpeed += 5;
+        userInput = "";
+        player.play('attack');
+        
+        // --- NEW LOGIC: RANGE CHECK ---
+        let closestEnemy = null;
+        let minDist = 9999;
+
+        // Find the absolute closest enemy
+        enemies.children.iterate(function (child) {
+            if (child.active) {
+                let dist = Phaser.Math.Distance.Between(player.x, player.y, child.x, child.y);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestEnemy = child;
+                }
+            }
+        });
+
+        // ONLY Kill if they are close enough (KILL_RANGE_PLAYER = 250)
+        if (closestEnemy && minDist < KILL_RANGE_PLAYER) {
+            closestEnemy.destroy();
+            // Optional: Add a "Hit!" text effect here later
+        } else {
+            // Missed! (Enemy too far)
+            // You could play a "Whoosh" sound here
+        }
+
+        const words = ["SLASH", "DASH", "TURBO", "HYPER", "NEON", "GLITCH"];
+        currentWord = words[Math.floor(Math.random() * words.length)];
+        wordText.setText(currentWord);
+        wordText.setColor('#00ff00');
+    } 
+    else if (!currentWord.startsWith(userInput)) {
+        userInput = "";
+        wordText.setColor('#ff0000');
+    } else {
+        wordText.setColor('#ffffff');
+    }
+}
+
+function takeDamage(player, enemy) {
+    enemy.destroy();
+    currentHealth -= ENEMY_DAMAGE;
+    let percentage = currentHealth / PLAYER_MAX_HEALTH;
+    healthBar.width = 200 * percentage;
+    player.setTint(0xff0000);
+    setTimeout(() => player.clearTint(), 200);
+
+    if (currentHealth <= 0) {
+        isGameOver = true;
+        this.physics.pause();
+        player.setTint(0x555555);
+        wordText.setText("GAME OVER");
+        player.anims.stop(); // Freeze animation
+    }
+}
+</script>
+
+</body>
+</html>
