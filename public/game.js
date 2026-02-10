@@ -33,7 +33,7 @@ function create() {
     
     // FIX: Opponent car rotation. 
     // If the sprite is facing "Up" in the image, we rotate it 90 degrees to face "Right"
-    p1Car = this.physics.add.sprite(50, 120, 'car_player').setScale(0.5).setAngle(90);
+    p1Car = this.physics.add.sprite(50, 120, 'car_player').setScale(0.5);
     p2Car = this.physics.add.sprite(50, 280, 'car_opponent').setScale(0.5).setAngle(90);
 
     // Floating WPM Label
