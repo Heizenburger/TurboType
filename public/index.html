@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TurboType | Arcade Racer</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div id="ui-container">
+        <div id="lobby">
+            <h1 class="arcade-title">TURBO TYPE</h1>
+            <input type="text" id="username" placeholder="ENTER PILOT NAME" maxlength="12">
+            <button id="ready-btn">JOIN RACE</button>
+        </div>
+        
+        <div id="game-ui" style="display:none;">
+            <div id="vs-header">PLAYER vs OPPONENT</div>
+            <div id="timer-overlay"></div>
+            <div id="typing-box">
+                <p id="target-text"></p>
+                <input type="text" id="input-field" autocomplete="off" autofocus>
+            </div>
+        </div>
+
+        <div id="end-screen" class="overlay" style="display:none;">
+            <h1 id="result-banner"></h1>
+            <div id="stats"></div>
+            <button onclick="location.reload()">REMATCH</button>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
