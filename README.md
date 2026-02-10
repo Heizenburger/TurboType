@@ -7,9 +7,9 @@
 ![Backend](https://img.shields.io/badge/Backend-Node.js_%2B_Socket.io-green)
 
 ## 📖 Overview
-[cite_start]**TurboType** is a web-based educational game designed to bridge the gap between monotonous typing drills and engaging skill acquisition[cite: 17, 18]. 
+**TurboType** is a web-based educational game designed to bridge the gap between monotonous typing drills and engaging skill acquisition.
 
-[cite_start]By leveraging **"Flow State" psychology**[cite: 19], the system adapts to the user's typing speed, forcing them to maintain rhythm and accuracy to survive. [cite_start]Unlike static tutors, mistakes in TurboType have immediate visual consequences—losing health or falling behind in a race[cite: 49].
+By leveraging **"Flow State" psychology**, the system adapts to the user's typing speed, forcing them to maintain rhythm and accuracy to survive. Unlike static tutors, mistakes in TurboType have immediate visual consequences—losing health or falling behind in a race.
 
 ---
 
@@ -17,9 +17,10 @@
 
 ### ⚔️ 1. Samurai Survival (Single Player)
 * **Objective:** Defend yourself against waves of enemies by typing words before they reach you.
-* **Mechanics:** * **Range Check:** Enemies can only be killed when they enter "Kill Range."
+* **Mechanics:**
+    * **Range Check:** Enemies can only be killed when they enter "Kill Range."
     * **Dynamic Animation:** Enemies switch from running to attacking based on proximity.
-    * [cite_start]**Health System:** Missed words or close-range hits drain your HP[cite: 49].
+    * **Health System:** Missed words or close-range hits drain your HP.
 
 ### 🏎️ 2. Turbo Racing (Multiplayer 1v1)
 * **Objective:** Race against a live opponent by typing a paragraph faster and more accurately.
@@ -30,12 +31,12 @@
 
 ---
 
-## [cite_start]🛠️ Tech Stack [cite: 26, 27, 28, 29]
+## 🛠️ Tech Stack
 * **Frontend:** HTML5, CSS3, JavaScript (ES6+)
 * **Game Engine:** Phaser.js (v3.80)
 * **Backend:** Node.js & Express
 * **Real-time Communication:** Socket.io
-* [cite_start]**Assets:** Custom Pixel Art (Aseprite) [cite: 31]
+* **Assets:** Custom Pixel Art (Aseprite)
 
 ---
 
@@ -70,12 +71,12 @@ Since this project uses a backend server for multiplayer features, you cannot ju
 
 ## 🔮 Future Scope
 * **Vertical Platformer Mode:** A "Keyboard Jump" style game for vertical scrolling practice.
-* [cite_start]**Global Leaderboards:** Persistent database to track high scores[cite: 100].
-* [cite_start]**AI Difficulty:** Enemies that adapt speed based on your average WPM[cite: 46, 47].
+* **Global Leaderboards:** Persistent database to track high scores.
+* **AI Difficulty:** Enemies that adapt speed based on your average WPM.
 
 ---
 
-## [cite_start]👥 Team Members [cite: 4, 5, 6]
+## 👥 Team Members
 * **Aman Adil** (300102223013)
 * **Amit Sahu** (300102223015)
 * **Anupam Sharma** (300102223023)
