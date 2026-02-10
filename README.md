@@ -49,7 +49,7 @@ Since this project uses a backend server for multiplayer features, you cannot ju
 **Steps:**
 1.  **Clone the Repository:**
     ```bash
-    git clone [https://github.com/YOUR_USERNAME/TurboType.git](https://github.com/YOUR_USERNAME/TurboType.git)
+    git clone [https://github.com/Heizenburger/TurboType.git](https://github.com/Heizenburger/TurboType.git)
     cd TurboType
     ```
 
