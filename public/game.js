@@ -30,9 +30,8 @@ function preload() {
 function create() {
     track = this.add.tileSprite(0, 0, 800, 400, 'track').setOrigin(0);
     
-    // Fixed Rotations: Yellow faces UP (rotate 90), Red faces RIGHT (no rotation)
-    p1Car = this.physics.add.sprite(50, 120, 'car_player').setScale(0.5).setAngle(90);
-    p2Car = this.physics.add.sprite(50, 280, 'car_opponent').setScale(0.5);
+    p1Car = this.physics.add.sprite(50, 120, 'car_player').setScale(0.5);
+    p2Car = this.physics.add.sprite(50, 280, 'car_opponent').setScale(0.5).setAngle(90);
 
     wpmText = this.add.text(p1Car.x, p1Car.y - 40, '0 WPM', { 
         font: 'bold 16px Inter', fill: '#6366f1', backgroundColor: '#ffffff', padding: { x: 5, y: 2 }
