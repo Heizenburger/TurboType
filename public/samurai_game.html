@@ -135,7 +135,7 @@ function update () {
 
 function spawnEnemy() {
     if (isGameOver) return;
-    // Spawns off-screen to the right (X: 1350), running on the new floor (Y: 600)
+    // Spawns off-screen to the right (X: 1350), running on the new floor (Y: 500)
     let enemy = enemies.create(1350, 500, 'hero_run').setScale(2.5).setFlipX(true).setTint(0xff0000).play('run'); 
     
     let speedBoost = Math.min(score * 2, 250); 
