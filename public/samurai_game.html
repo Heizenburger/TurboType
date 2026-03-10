@@ -66,7 +66,7 @@ function create () {
     this.anims.create({ key: 'attack', frames: this.anims.generateFrameNumbers('hero_attack', { start: 0, end: 5 }), frameRate: 15, repeat: 0 });
 
     // --- PLAYER (Lowered Y-coord to 600, Scaled to 2.5) ---
-    player = this.physics.add.sprite(200, 600, 'hero_idle').setScale(2.5).play('idle');
+    player = this.physics.add.sprite(200, 500, 'hero_idle').setScale(2.5).play('idle');
     player.body.setSize(30, 80); 
 
     enemies = this.physics.add.group();
@@ -136,7 +136,7 @@ function update () {
 function spawnEnemy() {
     if (isGameOver) return;
     // Spawns off-screen to the right (X: 1350), running on the new floor (Y: 600)
-    let enemy = enemies.create(1350, 600, 'hero_run').setScale(2.5).setFlipX(true).setTint(0xff0000).play('run'); 
+    let enemy = enemies.create(1350, 500, 'hero_run').setScale(2.5).setFlipX(true).setTint(0xff0000).play('run'); 
     
     let speedBoost = Math.min(score * 2, 250); 
     let randomSpeed = Phaser.Math.Between(150 + speedBoost, 250 + speedBoost);
