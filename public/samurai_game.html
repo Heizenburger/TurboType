@@ -2,15 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TurboType: Samurai Survival</title>
-    <style>body { margin: 0; background-color: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }</style>
+    <title>TurboType: Samurai Survival HD</title>
+    <style>body { margin: 0; background-color: #000; overflow: hidden; }</style>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
 </head>
 <body>
 
 <script>
 const config = {
-    type: Phaser.AUTO, width: 800, height: 400,
+    type: Phaser.AUTO, 
+    // --- NEW: AUTO-SCALING HD DISPLAY ---
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 1280,
+        height: 720
+    },
     physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
     scene: { preload: preload, create: create, update: update }
 };
@@ -20,8 +27,8 @@ const game = new Phaser.Game(config);
 // --- DESIGN VARIABLES ---
 const PLAYER_MAX_HEALTH = 100;
 const ENEMY_DAMAGE = 20;
-const ATTACK_RANGE_ENEMY = 190; 
-const KILL_RANGE_PLAYER = 250;  
+const ATTACK_RANGE_ENEMY = 280; // Increased for HD width
+const KILL_RANGE_PLAYER = 380;  // Increased for HD width
 
 // --- ADAPTIVE DICTIONARY ---
 const wordsEasy = ["CAT", "DOG", "RUN", "JUMP", "HIT", "SWORD", "DASH", "WIND", "FIRE"];
@@ -41,7 +48,7 @@ let scoreText, wordText, uiScoreText;
 let score = 0;
 let isGameOver = false;
 let spawnTimer;
-let currentSpawnDelay = 3000; // Starts at 3 seconds
+let currentSpawnDelay = 3000; 
 
 function preload () {
     this.load.image('city', 'assets/bg.png'); 
@@ -51,41 +58,39 @@ function preload () {
 }
 
 function create () {
-    background = this.add.tileSprite(400, 200, 800, 400, 'city');
+    // Adjusted background to fit 1280x720
+    background = this.add.tileSprite(640, 360, 1280, 720, 'city');
 
-    // --- ANIMATIONS ---
     this.anims.create({ key: 'idle', frames: this.anims.generateFrameNumbers('hero_idle', { start: 0, end: 9 }), frameRate: 10, repeat: -1 });
     this.anims.create({ key: 'run', frames: this.anims.generateFrameNumbers('hero_run', { start: 0, end: 7 }), frameRate: 12, repeat: -1 });
     this.anims.create({ key: 'attack', frames: this.anims.generateFrameNumbers('hero_attack', { start: 0, end: 5 }), frameRate: 15, repeat: 0 });
 
-    // --- PLAYER ---
-    player = this.physics.add.sprite(150, 345, 'hero_idle').setScale(2).play('idle');
+    // --- PLAYER (Lowered Y-coord to 600, Scaled to 2.5) ---
+    player = this.physics.add.sprite(200, 600, 'hero_idle').setScale(2.5).play('idle');
     player.body.setSize(30, 80); 
 
-    // --- ENEMIES ---
     enemies = this.physics.add.group();
     spawnTimer = this.time.addEvent({ delay: currentSpawnDelay, callback: spawnEnemy, callbackScope: this, loop: true });
 
-    // --- UI ---
-    this.add.rectangle(150, 50, 200, 20, 0x555555).setOrigin(0, 0.5);
-    healthBar = this.add.rectangle(150, 50, 200, 20, 0x00ff00).setOrigin(0, 0.5);
-    this.add.text(100, 50, "HP", { fontSize: '20px', fontStyle: 'bold' }).setOrigin(0.5);
+    // --- UI (Scaled up for HD) ---
+    this.add.rectangle(170, 60, 300, 25, 0x555555).setOrigin(0, 0.5);
+    healthBar = this.add.rectangle(170, 60, 300, 25, 0x00ff00).setOrigin(0, 0.5);
+    this.add.text(120, 60, "HP", { fontSize: '24px', fontStyle: 'bold' }).setOrigin(0.5);
     
-    uiScoreText = this.add.text(20, 80, "SCORE: 0", { fontSize: '24px', fontStyle: 'bold', fill: '#fff' });
+    uiScoreText = this.add.text(30, 100, "SCORE: 0", { fontSize: '28px', fontStyle: 'bold', fill: '#fff' });
 
-    wordText = this.add.text(400, 100, currentWord, { fontSize: '40px', fill: '#fff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
-    scoreText = this.add.text(400, 350, 'TYPE "START"', { fontSize: '20px', fill: '#0f0', backgroundColor: '#000' }).setOrigin(0.5);
+    wordText = this.add.text(640, 200, currentWord, { fontSize: '60px', fill: '#fff', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5);
+    scoreText = this.add.text(640, 650, 'TYPE "START"', { fontSize: '28px', fill: '#0f0', backgroundColor: '#000', padding: {x:10, y:5} }).setOrigin(0.5);
 
-    // --- INPUT ---
     this.input.keyboard.on('keydown', (event) => {
         if (isGameOver) {
-            if (event.keyCode === 13) location.reload(); // Press ENTER to Restart
+            if (event.keyCode === 13) location.reload(); 
             return;
         }
         if (event.keyCode >= 65 && event.keyCode <= 90) {
             userInput += event.key.toUpperCase();
             checkInput();
-        } else if (event.keyCode === 8) { // Backspace support
+        } else if (event.keyCode === 8) { 
             userInput = userInput.slice(0, -1);
             scoreText.setText(userInput);
             wordText.setColor('#ffffff');
@@ -130,11 +135,11 @@ function update () {
 
 function spawnEnemy() {
     if (isGameOver) return;
-    let enemy = enemies.create(850, 345, 'hero_run').setScale(2).setFlipX(true).setTint(0xff0000).play('run'); 
+    // Spawns off-screen to the right (X: 1350), running on the new floor (Y: 600)
+    let enemy = enemies.create(1350, 600, 'hero_run').setScale(2.5).setFlipX(true).setTint(0xff0000).play('run'); 
     
-    // Enemies get faster as score increases
-    let speedBoost = Math.min(score * 2, 200); 
-    let randomSpeed = Phaser.Math.Between(100 + speedBoost, 200 + speedBoost);
+    let speedBoost = Math.min(score * 2, 250); 
+    let randomSpeed = Phaser.Math.Between(150 + speedBoost, 250 + speedBoost);
     
     enemy.setVelocityX(-randomSpeed);
     enemy.checkWorldBounds = true;
@@ -145,7 +150,6 @@ function checkInput() {
     scoreText.setText(userInput);
 
     if (userInput === currentWord) {
-        // SUCCESS
         scrollSpeed += 5;
         userInput = "";
         player.play('attack');
@@ -160,23 +164,20 @@ function checkInput() {
             }
         });
 
-        // Range Check & Scoring
         if (closestEnemy && minDist < KILL_RANGE_PLAYER) {
             closestEnemy.destroy();
             score += 10;
             uiScoreText.setText("SCORE: " + score);
             showFloatingText("HIT!", 0x00ff00);
             
-            // Adaptive Difficulty: Spawns get faster
             if (currentSpawnDelay > 1000) {
                 currentSpawnDelay -= 50;
                 spawnTimer.delay = currentSpawnDelay;
             }
         } else {
-            showFloatingText("MISS!", 0xffa500); // Orange Miss text
+            showFloatingText("MISS!", 0xffa500); 
         }
 
-        // Adaptive Dictionary Selection
         let wordList = wordsEasy;
         if (score >= 50 && score < 150) wordList = wordsMedium;
         else if (score >= 150) wordList = wordsHard;
@@ -194,15 +195,16 @@ function checkInput() {
 }
 
 function showFloatingText(msg, color) {
-    let popup = game.scene.scenes[0].add.text(player.x + 50, player.y - 50, msg, { fontSize: '24px', fontStyle: 'bold', fill: '#fff' });
+    let popup = game.scene.scenes[0].add.text(player.x + 80, player.y - 100, msg, { fontSize: '32px', fontStyle: 'bold', fill: '#fff', stroke: '#000', strokeThickness: 4 });
     popup.setTint(color);
-    game.scene.scenes[0].tweens.add({ targets: popup, y: popup.y - 50, alpha: 0, duration: 800, onComplete: () => popup.destroy() });
+    game.scene.scenes[0].tweens.add({ targets: popup, y: popup.y - 60, alpha: 0, duration: 800, onComplete: () => popup.destroy() });
 }
 
 function takeDamage(player, enemy) {
     enemy.destroy();
     currentHealth -= ENEMY_DAMAGE;
-    healthBar.width = 200 * Math.max(0, currentHealth / PLAYER_MAX_HEALTH);
+    // Adjusted math for the new 300px wide health bar
+    healthBar.width = 300 * Math.max(0, currentHealth / PLAYER_MAX_HEALTH);
     player.setTint(0xff0000);
     setTimeout(() => player.clearTint(), 200);
 
