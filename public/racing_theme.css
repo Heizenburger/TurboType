@@ -1,0 +1,189 @@
+/* --- ARCADE RACING THEME --- */
+body {
+    background: #0f172a;
+    overflow: hidden; 
+    margin: 0;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* --- HEADER --- */
+.race-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: #020617;
+    border-bottom: 2px solid #3b82f6;
+    color: white;
+    z-index: 10;
+}
+
+.brand-logo { font-size: 1.5rem; font-weight: 900; color: #3b82f6; text-transform: uppercase; font-style: italic; letter-spacing: 2px; }
+.vs-banner { font-size: 1.2rem; font-weight: bold; color: #f8fafc; }
+.room-badge { font-size: 0.8rem; background: rgba(59, 130, 246, 0.2); padding: 5px 10px; border-radius: 6px; border: 1px solid #3b82f6; color: #94a3b8; }
+
+/* --- PARALLAX WORLD --- */
+#race-track {
+    flex: 1; 
+    position: relative;
+    width: 100vw;
+    background: linear-gradient(to bottom, #020617 0%, #1e1b4b 100%);
+    overflow: hidden;
+    border-bottom: 4px solid #f59e0b;
+}
+
+/* Spin-Out Shake Animation for Hazards */
+@keyframes spinOutShake {
+    0% { transform: translate(15px, 10px) rotate(2deg); }
+    20% { transform: translate(-15px, -10px) rotate(-2deg); }
+    40% { transform: translate(15px, -10px) rotate(2deg); }
+    60% { transform: translate(-15px, 10px) rotate(-2deg); }
+    80% { transform: translate(10px, 10px) rotate(1deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+}
+.spin-out { animation: spinOutShake 0.5s ease-in-out; filter: saturate(2) hue-rotate(-20deg); }
+
+.parallax {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-repeat: repeat-x;
+    will-change: background-position;
+}
+
+.layer-sky { background-image: radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 4px); background-size: 200px 200px; opacity: 0.3; }
+.layer-city { 
+    background-image: url('https://images.unsplash.com/photo-1519501025264-65ba15a82390?q=80&w=2000&auto=format&fit=crop'); 
+    background-size: auto 100%; opacity: 0.4; mix-blend-mode: luminosity;
+}
+.layer-road { background: linear-gradient(to bottom, transparent 80%, #334155 80%, #0f172a 100%); bottom: 0; }
+
+/* --- THE CARS & NITRO --- */
+.car {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.1s;
+}
+
+.player-tag { display: flex; flex-direction: column; align-items: center; margin-top: 8px; }
+.player-tag .name { font-size: 0.75rem; font-weight: bold; }
+.player-tag .wpm { background: rgba(0,0,0,0.8); padding: 3px 8px; border-radius: 12px; font-size: 0.9rem; font-weight: bold; border: 1px solid; transition: 0.3s; }
+
+#p2-car { bottom: 40%; left: 5vw; z-index: 2; transform: scale(0.85); filter: brightness(0.7); }
+#p2-car .name { color: #cbd5e1; }
+#p2-car .wpm { border-color: #ef4444; color: #ef4444; }
+
+#p1-car { bottom: 15%; left: 5vw; z-index: 3; }
+#p1-car .name { color: white; }
+#p1-car .wpm { border-color: #3b82f6; color: #3b82f6; }
+
+.nitro-flame {
+    position: absolute;
+    left: -40px; top: 15px; 
+    width: 60px; height: 15px;
+    background: linear-gradient(to left, #60a5fa, #3b82f6, transparent);
+    border-radius: 50%; filter: blur(3px);
+    opacity: 0; transition: opacity 0.3s;
+    animation: flicker 0.1s infinite alternate;
+    pointer-events: none;
+}
+.nitro-active .nitro-flame { opacity: 1; }
+.nitro-active .wpm { box-shadow: 0 0 10px #3b82f6; text-shadow: 0 0 5px #3b82f6; color: white !important; }
+
+@keyframes flicker {
+    from { transform: scaleX(1); opacity: 0.8; }
+    to { transform: scaleX(1.3); opacity: 1; }
+}
+
+/* --- 2-LINE TYPING CONSOLE --- */
+#typing-console {
+    background: #0f172a;
+    padding: 30px; height: 160px; 
+    display: flex; flex-direction: column; align-items: center; position: relative;
+}
+
+#text-window {
+    width: 80%; max-width: 900px; height: 3.6em; 
+    line-height: 1.8em; overflow: hidden;
+    font-size: 1.5rem; font-family: 'Courier New', monospace; font-weight: bold;
+    color: #64748b; position: relative;
+}
+#text-content { transition: transform 0.2s ease-out; }
+
+.word { display: inline-block; margin-right: 0.4em; padding: 0 0.1em; border-radius: 4px; transition: 0.1s; }
+.word.correct { color: #10b981; opacity: 0.5; }
+.word.error { color: #ef4444; background: rgba(239, 68, 68, 0.2); }
+.word.current { border-bottom: 3px solid #3b82f6; color: white; }
+.word.current.active { background: rgba(59, 130, 246, 0.2); }
+
+/* Hazard Word Styling */
+.word.hazard { color: #facc15; text-shadow: 0 0 8px rgba(250, 204, 21, 0.6); }
+.word.hazard.current { border-bottom-color: #facc15; background: rgba(250, 204, 21, 0.2); color: #fef08a; }
+.word.hazard.error { background: rgba(239, 68, 68, 0.4); color: #ef4444; text-shadow: none; border-bottom: 2px solid #ef4444; }
+
+#hidden-type-input { position: absolute; opacity: 0; pointer-events: none; }
+
+#live-typing-display {
+    margin-top: 15px;
+    font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: bold;
+    color: white; background: rgba(15, 23, 42, 0.8);
+    padding: 5px 20px; border-radius: 8px; border: 2px solid #3b82f6;
+    min-width: 100px; min-height: 35px;
+    display: flex; justify-content: center; align-items: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    transition: 0.2s;
+}
+
+.words-remaining {
+    position: absolute; bottom: 15px; right: 90px;
+    font-size: 0.9rem; font-weight: bold; color: #64748b;
+}
+
+/* --- ICONS & MODALS --- */
+.leave-btn {
+    position: fixed; bottom: 20px; right: 20px;
+    background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; color: #ef4444;
+    width: 50px; height: 50px; border-radius: 50%; font-size: 1.2rem;
+    cursor: pointer; display: flex; justify-content: center; align-items: center;
+    transition: 0.2s; z-index: 100;
+}
+.leave-btn:hover { background: #ef4444; color: white; transform: scale(1.1); }
+
+.difficulty-badge {
+    position: fixed; bottom: 20px; left: 20px;
+    background: rgba(0,0,0,0.6); border: 1px solid #334155;
+    padding: 8px 15px; border-radius: 8px;
+    color: #94a3b8; font-weight: bold; font-size: 0.85rem;
+    z-index: 100; display: none;
+}
+
+/* Dynamic Gameplay Event Toasts (Hazard Cleared/Spin Out/Nitro) */
+.gameplay-event {
+    position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+    font-weight: 900; font-size: 2.5rem; text-transform: uppercase; letter-spacing: 2px;
+    opacity: 0; pointer-events: none; z-index: 2000;
+    transition: opacity 0.2s, transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-shadow: 0 4px 15px rgba(0,0,0,0.8);
+}
+.gameplay-event.show { opacity: 1; transform: translate(-50%, -100%); }
+
+.custom-modal {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+    display: none; justify-content: center; align-items: center; z-index: 1000;
+}
+.modal-box {
+    background: #1e293b; padding: 40px; border-radius: 16px; border: 2px solid #3b82f6;
+    text-align: center; color: white; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.modal-btn { padding: 12px 24px; margin: 10px 5px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; font-size: 1rem; transition: 0.2s; }
+.modal-btn:hover { filter: brightness(1.2); transform: translateY(-2px); }
+.btn-danger { background: #ef4444; color: white; }
+.btn-safe { background: #334155; color: white; }
+
+#timer-overlay {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 6rem; font-weight: 900; color: #f59e0b; text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    z-index: 50; display: none;
+}

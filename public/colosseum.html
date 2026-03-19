@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+  <head>
+    <title>TurboType | Colosseum Raid</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        if (!localStorage.getItem('token')) {
+            window.location.href = 'index.html?redirect=' + encodeURIComponent(window.location.href);
+        }
+    </script>
+    <link rel="stylesheet" href="colosseum_theme.css" />
+  </head>
+  <body>
+    
+    <!-- Top-Center Copy Toast -->
+    <div id="copy-toast" class="copy-toast">Copied!</div>
+
+    <button id="exit-btn" onclick="surrenderMatch()">EXIT RAID</button>
+
+    <div id="ui-container" style="max-width: 1100px; width: 95%;">
+      <div id="lobby">
+        <h1 class="arcade-title" style="text-align: center; margin-bottom: 30px; font-weight: 900; letter-spacing: 4px; font-size: 2.5rem;">COLOSSEUM RAID</h1>
+        
+        <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+            
+            <!-- LEFT: Global Leaderboard -->
+            <div style="flex: 1.2; min-width: 350px; background: rgba(0,0,0,0.3); padding: 25px; border-radius: 12px; border: 1px solid #555; display: flex; flex-direction: column;">
+                <h3 style="margin-top:0; color: #e11d48; letter-spacing: 2px;">GLOBAL LEADERBOARD</h3>
+                <div style="overflow-y: auto; flex: 1; max-height: 400px; padding-right: 10px;">
+                    <table class="lb-table">
+                        <thead>
+                            <tr>
+                                <th>Gamertag</th>
+                                <th>Skill Score</th>
+                                <th style="text-align: center;">Raids Fought</th>
+                                <th style="text-align: center;">Damage Dealt</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            <tr><td colspan="4" style="text-align:center; padding: 20px; color: #94a3b8;">Loading Server Data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- RIGHT: Rules & Settings -->
+            <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 20px;">
+                
+                <div class="rules-box" style="margin: 0;">
+                    <h3 style="margin-top:0; color: #e11d48; letter-spacing: 1px;">⚔️ BATTLE INSTRUCTIONS</h3>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li><strong>Co-op Gameplay:</strong> All players in the room share the same Boss instance and HP bar.</li>
+                        <li>Type the epic lore to launch attacks. <strong>Longer words deal more damage!</strong></li>
+                        <li>The Boss has 5,000 HP. You must work together to bring it down before fatigue sets in.</li>
+                        <li>Your progress is saved on the server. Rejoin within 60 seconds to resume the fight.</li>
+                    </ul>
+                </div>
+
+                <div style="display: flex; gap: 15px;">
+                    <div class="room-box" style="margin: 0;">
+                        <h3 style="margin-top:0; font-size: 1rem; color: #fca5a5;">HOST</h3>
+                        <button class="action-btn create-btn" style="margin-top: 5px;" onclick="hostRoom()">CREATE PRIVATE RAID</button>
+                    </div>
+                    <div class="room-box" style="margin: 0;">
+                        <h3 style="margin-top:0; font-size: 1rem; color: #fca5a5;">JOIN</h3>
+                        <input type="text" id="room-code-input" class="diff-select" placeholder="6-DIGIT CODE" style="margin-top: 5px; text-transform: uppercase;">
+                        <button class="action-btn join-btn" style="margin-top: 10px;" onclick="joinExistingRoom()">JOIN BATTLE</button>
+                    </div>
+                </div>
+                <p id="room-error" style="color: #ef4444; display: none; margin: 0; font-weight: bold; text-align: center;"></p>
+
+            </div>
+        </div>
+      </div>
+
+      <div id="game-ui" style="display: none">
+        <h1 class="arcade-title" style="margin-bottom: 5px;">COLOSSEUM RAID</h1>
+        
+        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+            <input type="text" id="display-room-code" readonly style="width: 150px; text-align: center; font-size: 1.2rem; font-weight: bold; background: rgba(0,0,0,0.2); border: 2px solid #e11d48; border-radius: 8px; color: #e11d48; outline: none;">
+            <button onclick="copyData('display-room-code')" class="action-btn create-btn" style="width: auto; margin: 0; padding: 10px;">COPY CODE</button>
+            <input type="text" id="display-room-link" readonly style="width: 200px; text-align: center; font-size: 0.9rem; background: rgba(0,0,0,0.2); border: 1px solid #fb7185; border-radius: 8px; color: white; outline: none;">
+            <button onclick="copyData('display-room-link')" class="action-btn join-btn" style="width: auto; margin: 0; padding: 10px;">COPY LINK</button>
+        </div>
+
+        <div id="boss-hp-container">
+            <div id="boss-hp-fill"></div>
+            <div id="boss-hp-text">5000 / 5000</div>
+        </div>
+
+        <div id="phaser-mount"></div>
+
+        <div id="raid-log">Establishing connection to the Colosseum...</div>
+
+        <div id="typing-box">
+          <p id="target-text"></p>
+          <input type="text" id="input-field" autocomplete="off" autofocus placeholder="Type the lore to attack..." />
+        </div>
+      </div>
+    </div>
+
+    <script>
+        function copyData(id) { 
+            const c = document.getElementById(id); 
+            c.select(); 
+            document.execCommand('copy'); 
+            
+            const toast = document.getElementById('copy-toast');
+            toast.innerText = id === 'display-room-code' ? "Room Code Copied!" : "Invite Link Copied!";
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+    </script>
+    
+    <script src="raid.js"></script>
+  </body>
+</html>
