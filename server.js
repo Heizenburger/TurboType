@@ -117,7 +117,11 @@ app.post('/api/game/end', authenticateToken, async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        const totalGames = user.games.turboRacing.played + user.games.samuraiTyping.played + 1;
+        const totalGames = 
+    user.games.turboRacing.played + 
+    user.games.samuraiTyping.played + 
+    user.games.syntaxArena.played + 
+    user.games.colosseumRaid.played + 1;
         user.globalMetrics.avgWpm = Math.round(((user.globalMetrics.avgWpm * (totalGames - 1)) + wpm) / totalGames);
         user.globalMetrics.avgAccuracy = Math.round(((user.globalMetrics.avgAccuracy * (totalGames - 1)) + accuracy) / totalGames);
         if (burstSpeed > user.globalMetrics.peakBurstSpeed) user.globalMetrics.peakBurstSpeed = Math.round(burstSpeed);
