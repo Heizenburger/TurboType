@@ -6,32 +6,60 @@
     <title>TurboType Hub</title>
     <style>
         body { 
-            margin: 0; background: #0f172a; color: white; 
+            margin: 0; background: #020617; color: white; 
             font-family: 'Inter', sans-serif; display: flex; 
             flex-direction: column; align-items: center; justify-content: center; 
             height: 100vh; position: relative; overflow: hidden;
         }
-        
+
+        /* --- INTERACTIVE FLOATING KEYBOARD --- */
+        .keyboard-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0; overflow: hidden; pointer-events: none;
+        }
+        .key-wrapper { position: absolute; bottom: -100px; animation: floatUp linear infinite; }
+        .floating-key {
+            width: 60px; height: 60px; border-radius: 8px;
+            display: flex; justify-content: center; align-items: center;
+            font-family: monospace; font-size: 1.2rem; font-weight: bold;
+            transition: transform 0.15s ease-out, box-shadow 0.2s, background 0.2s;
+        }
+
+        .key-green { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); color: rgba(16, 185, 129, 0.3); box-shadow: 0 0 15px rgba(16, 185, 129, 0.1); }
+        .key-blue { background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); color: rgba(59, 130, 246, 0.3); box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
+        .key-red { background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); color: rgba(239, 68, 68, 0.3); box-shadow: 0 0 15px rgba(239, 68, 68, 0.1); }
+
+        .key-green.active { background: rgba(16, 185, 129, 0.2); color: #10b981; box-shadow: 0 0 30px rgba(16, 185, 129, 0.6); text-shadow: 0 0 10px #10b981; }
+        .key-blue.active { background: rgba(59, 130, 246, 0.2); color: #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); text-shadow: 0 0 10px #3b82f6; }
+        .key-red.active { background: rgba(239, 68, 68, 0.2); color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); text-shadow: 0 0 10px #ef4444; }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* --- NEON CARDS --- */
         .content-wrapper { z-index: 10; text-align: center; }
         
         h1 { 
             font-size: 3.5rem; color: #fff; text-transform: uppercase; 
-            letter-spacing: 6px; text-shadow: 0 0 15px #6366f1, 0 0 30px #6366f1; 
-            margin-bottom: 0;
+            letter-spacing: 6px; text-shadow: 0 0 15px #3b82f6, 0 0 30px #3b82f6; 
+            margin-bottom: 0; font-weight: 900;
         }
         .subtitle { color: #94a3b8; font-family: monospace; font-size: 1.2rem; letter-spacing: 2px; margin-bottom: 40px; }
 
         .menu { display: flex; gap: 25px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
         
         .card { 
-            padding: 30px 40px; background: rgba(15, 23, 42, 0.8); 
+            padding: 30px 40px; background: rgba(15, 23, 42, 0.85); 
             border: 2px solid #334155; border-radius: 16px; text-align: center; 
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
             cursor: pointer; text-decoration: none; color: white;
-            backdrop-filter: blur(10px); min-width: 200px;
+            backdrop-filter: blur(12px); min-width: 200px;
         }
         
-        /* Neon Hover States for Cards */
         .card.samurai:hover { border-color: #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.4), inset 0 0 15px rgba(59, 130, 246, 0.2); transform: translateY(-8px); }
         .card.racing:hover { border-color: #f59e0b; box-shadow: 0 0 30px rgba(245, 158, 11, 0.4), inset 0 0 15px rgba(245, 158, 11, 0.2); transform: translateY(-8px); }
         .card.syntax { border-color: rgba(16, 185, 129, 0.5); }
@@ -49,8 +77,9 @@
         /* User Header */
         #user-header {
             position: absolute; top: 25px; right: 30px; display: flex; align-items: center; gap: 20px;
-            background: rgba(15, 23, 42, 0.8); padding: 12px 25px; border-radius: 30px;
-            border: 1px solid #334155; backdrop-filter: blur(10px); z-index: 100;
+            background: rgba(15, 23, 42, 0.85); padding: 12px 25px; border-radius: 30px;
+            border: 1px solid #3b82f6; backdrop-filter: blur(12px); z-index: 100;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
         }
         #user-header span { font-weight: bold; color: #a5b4fc; }
         .header-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: 0.2s; }
@@ -61,6 +90,19 @@
     </script>
 </head>
 <body>
+
+    <div class="keyboard-bg" id="key-bg">
+        <div class="key-wrapper" style="left: 10%; animation-duration: 12s; animation-delay: 0s;"><div class="floating-key key-blue">W</div></div>
+        <div class="key-wrapper" style="left: 25%; animation-duration: 15s; animation-delay: 2s;"><div class="floating-key key-green">{ }</div></div>
+        <div class="key-wrapper" style="left: 45%; animation-duration: 10s; animation-delay: 5s;"><div class="floating-key key-red">ESC</div></div>
+        <div class="key-wrapper" style="left: 60%; animation-duration: 14s; animation-delay: 1s;"><div class="floating-key key-blue">A</div></div>
+        <div class="key-wrapper" style="left: 75%; animation-duration: 11s; animation-delay: 4s;"><div class="floating-key key-green">=></div></div>
+        <div class="key-wrapper" style="left: 85%; animation-duration: 13s; animation-delay: 3s;"><div class="floating-key key-blue">S</div></div>
+        <div class="key-wrapper" style="left: 20%; animation-duration: 16s; animation-delay: 7s;"><div class="floating-key key-red">CTRL</div></div>
+        <div class="key-wrapper" style="left: 80%; animation-duration: 12s; animation-delay: 6s;"><div class="floating-key key-green">/</div></div>
+        <div class="key-wrapper" style="left: 35%; animation-duration: 18s; animation-delay: 8s;"><div class="floating-key key-blue">D</div></div>
+        <div class="key-wrapper" style="left: 50%; animation-duration: 14s; animation-delay: 9s;"><div class="floating-key key-red">ALT</div></div>
+    </div>
 
     <div id="user-header">
         <div style="color: #64748b; font-size: 0.9rem;">Avatar <span id="display-avatar"></span></div>
@@ -101,65 +143,25 @@
     </div>
 
     <script>
-        function initKeyboardBg() {
-            const canvas = document.createElement('canvas');
-            canvas.style.position = 'fixed';
-            canvas.style.top = '0'; canvas.style.left = '0';
-            canvas.style.width = '100vw'; canvas.style.height = '100vh';
-            canvas.style.zIndex = '1'; canvas.style.pointerEvents = 'none';
-            document.body.prepend(canvas);
+        document.addEventListener('mousemove', (e) => {
+            const keys = document.querySelectorAll('.floating-key');
+            keys.forEach(key => {
+                const rect = key.getBoundingClientRect();
+                const keyCenterX = rect.left + rect.width / 2;
+                const keyCenterY = rect.top + rect.height / 2;
+                const dist = Math.hypot(e.clientX - keyCenterX, e.clientY - keyCenterY);
 
-            const ctx = canvas.getContext('2d');
-            let w, h, cols, rows;
-            const size = 35; 
-            let mouseX = -1000, mouseY = -1000;
-
-            function resize() {
-                w = canvas.width = window.innerWidth;
-                h = canvas.height = window.innerHeight;
-                cols = Math.ceil(w / size); rows = Math.ceil(h / size);
-            }
-            window.addEventListener('resize', resize); resize();
-            window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
-
-            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*<>".split("");
-            const grid = Array.from({length: 3000}, () => chars[Math.floor(Math.random()*chars.length)]);
-
-            function draw() {
-                ctx.clearRect(0, 0, w, h);
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '14px monospace';
-
-                let i = 0;
-                for (let y = 0; y < rows; y++) {
-                    for (let x = 0; x < cols; x++) {
-                        const px = x * size + size/2; const py = y * size + size/2;
-                        const dist = Math.hypot(mouseX - px, mouseY - py);
-                        let alpha = dist < 200 ? 1 - (dist / 200) : 0;
-
-                        if (Math.random() < 0.005) grid[i] = chars[Math.floor(Math.random()*chars.length)];
-
-                        ctx.beginPath();
-                        ctx.roundRect(px - size/2 + 2, py - size/2 + 2, size - 4, size - 4, 4);
-                        if (alpha > 0.05) {
-                            ctx.strokeStyle = `rgba(99, 102, 241, ${alpha + 0.2})`;
-                            ctx.fillStyle = `rgba(99, 102, 241, ${alpha * 0.15})`;
-                            ctx.shadowBlur = 15 * alpha; ctx.shadowColor = '#6366f1';
-                        } else {
-                            ctx.strokeStyle = `rgba(51, 65, 85, 0.3)`;
-                            ctx.fillStyle = 'transparent'; ctx.shadowBlur = 0;
-                        }
-                        ctx.fill(); ctx.stroke();
-
-                        ctx.fillStyle = alpha > 0.05 ? `rgba(255, 255, 255, ${alpha + 0.5})` : `rgba(100, 116, 139, 0.4)`;
-                        ctx.fillText(grid[i], px, py);
-                        i++;
-                    }
+                if (dist < 150) {
+                    const pushX = ((keyCenterX - e.clientX) / dist) * 30;
+                    const pushY = ((keyCenterY - e.clientY) / dist) * 30;
+                    key.style.transform = `translate(${pushX}px, ${pushY}px) scale(1.2)`;
+                    key.classList.add('active');
+                } else {
+                    key.style.transform = `translate(0px, 0px) scale(1)`;
+                    key.classList.remove('active');
                 }
-                requestAnimationFrame(draw);
-            }
-            draw();
-        }
-        initKeyboardBg();
+            });
+        });
 
         // Hub Logic
         if (localStorage.getItem('token')) {
