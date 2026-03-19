@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TurboType | Login</title>
+    <title>TurboType | Enter the Mainframe</title>
     <link rel="stylesheet" href="style.css">
     <script>
         // Auto-forward logged-in users, preserving their room locks or redirects
@@ -17,27 +17,136 @@
             }
         }
     </script>
+    <style>
+        /* --- NEON LOGIN THEME --- */
+        body {
+            background: #020617; /* Deep dark blue/black */
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', monospace, sans-serif;
+        }
+
+        /* Animated Floating Keyboard Background */
+        .keyboard-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0; overflow: hidden; pointer-events: none;
+        }
+        .floating-key {
+            position: absolute; bottom: -100px;
+            width: 60px; height: 60px;
+            border-radius: 8px;
+            display: flex; justify-content: center; align-items: center;
+            font-family: monospace; font-size: 1.2rem; font-weight: bold;
+            animation: floatUp linear infinite;
+        }
+
+        /* Green Keys */
+        .key-green {
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+        /* Blue Keys */
+        .key-blue {
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
+        }
+        /* Red Keys */
+        .key-red {
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: rgba(239, 68, 68, 0.3);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* Neon UI Container */
+        .neon-container {
+            position: relative; z-index: 10;
+            background: rgba(15, 23, 42, 0.85) !important;
+            border: 2px solid #3b82f6 !important;
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.3), inset 0 0 20px rgba(59, 130, 246, 0.2) !important;
+            backdrop-filter: blur(12px) !important;
+            border-radius: 16px !important;
+            padding: 40px !important;
+            width: 90%; max-width: 400px; margin: auto;
+        }
+
+        .neon-title {
+            color: #fff; text-align: center; margin-top: 0;
+            text-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6, 0 0 40px #3b82f6;
+            letter-spacing: 4px; font-weight: 900; font-size: 2.2rem;
+        }
+
+        .auth-input {
+            background: rgba(0, 0, 0, 0.5) !important;
+            border: 1px solid #334155 !important;
+            color: #fff !important;
+        }
+        .auth-input:focus { border-color: #10b981 !important; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+
+        .auth-btn {
+            background: #3b82f6; color: white; width: 100%; margin-top: 15px; padding: 14px; 
+            border: none; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer;
+            letter-spacing: 1px; transition: 0.2s; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        .auth-btn:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6); }
+        .auth-btn-green { background: #10b981; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
+        .auth-btn-green:hover { background: #059669; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6); }
+
+        .toggle-link {
+            display: block; text-align: center; margin-top: 20px; font-weight: bold;
+            color: #94a3b8; cursor: pointer; transition: 0.2s; font-size: 0.9rem;
+        }
+        .toggle-link:hover { color: #fff; text-shadow: 0 0 8px #fff; }
+    </style>
 </head>
 <body>
-    <div id="ui-container" style="max-width: 400px; margin: auto;">
-        <h1 class="arcade-title">TURBO TYPE</h1>
+
+    <div class="keyboard-bg">
+        <div class="floating-key key-blue" style="left: 10%; animation-duration: 12s; animation-delay: 0s;">W</div>
+        <div class="floating-key key-green" style="left: 25%; animation-duration: 15s; animation-delay: 2s;">{ }</div>
+        <div class="floating-key key-red" style="left: 45%; animation-duration: 10s; animation-delay: 5s;">ESC</div>
+        <div class="floating-key key-blue" style="left: 60%; animation-duration: 14s; animation-delay: 1s;">A</div>
+        <div class="floating-key key-green" style="left: 75%; animation-duration: 11s; animation-delay: 4s;">=></div>
+        <div class="floating-key key-blue" style="left: 85%; animation-duration: 13s; animation-delay: 3s;">S</div>
+        <div class="floating-key key-red" style="left: 20%; animation-duration: 16s; animation-delay: 7s;">CTRL</div>
+        <div class="floating-key key-green" style="left: 80%; animation-duration: 12s; animation-delay: 6s;">/</div>
+        <div class="floating-key key-blue" style="left: 35%; animation-duration: 18s; animation-delay: 8s;">D</div>
+        <div class="floating-key key-red" style="left: 50%; animation-duration: 14s; animation-delay: 9s;">ALT</div>
+    </div>
+
+    <div id="ui-container" class="neon-container">
+        <h1 class="neon-title">TURBO TYPE</h1>
         
         <div id="login-section">
-            <h2>LOGIN</h2>
-            <input type="text" id="login-id" class="diff-select" placeholder="Email or Gamertag">
-            <input type="password" id="login-pass" class="diff-select" placeholder="Password">
-            <button id="login-btn" style="width: 100%; margin-top: 15px; padding: 12px; cursor: pointer;">ENTER</button>
-            <p style="margin-top: 15px; cursor: pointer; color: var(--primary);" onclick="toggleAuth()">Need an account? Sign up</p>
+            <h2 style="color: #94a3b8; text-align: center; font-size: 1rem; letter-spacing: 2px;">SYSTEM LOGIN</h2>
+            <input type="text" id="login-id" class="diff-select auth-input" placeholder="Email or Gamertag">
+            <input type="password" id="login-pass" class="diff-select auth-input" placeholder="Password">
+            
+            <p id="auth-error" style="color: #ef4444; display: none; text-align: center; font-weight: bold; margin-top: 10px; font-size: 0.9rem;"></p>
+            
+            <button id="login-btn" class="auth-btn">ENTER MAINFRAME</button>
+            <span class="toggle-link" onclick="toggleAuth()">Need an account? Init Signup_</span>
         </div>
 
         <div id="signup-section" style="display: none;">
-            <h2>SIGN UP</h2>
-            <input type="email" id="reg-email" class="diff-select" placeholder="Email">
-            <input type="text" id="reg-gamertag" class="diff-select" placeholder="Gamertag">
-            <input type="password" id="reg-pass" class="diff-select" placeholder="Password">
+            <h2 style="color: #94a3b8; text-align: center; font-size: 1rem; letter-spacing: 2px;">NEW USER REGISTRATION</h2>
+            <input type="email" id="reg-email" class="diff-select auth-input" placeholder="Email Address">
+            <input type="text" id="reg-gamertag" class="diff-select auth-input" placeholder="Gamertag">
+            <input type="password" id="reg-pass" class="diff-select auth-input" placeholder="Password">
             
-            <p style="text-align: left; margin-bottom: 5px;">Select Avatar:</p>
-            <select id="reg-avatar" class="diff-select">
+            <p style="text-align: left; margin: 15px 0 5px 0; color: #94a3b8; font-size: 0.85rem; font-weight: bold;">SELECT AVATAR:</p>
+            <select id="reg-avatar" class="diff-select auth-input">
                 <option value="1">Ninja</option>
                 <option value="2">Racer</option>
                 <option value="3">Hacker</option>
@@ -45,11 +154,11 @@
                 <option value="5">Ghost</option>
             </select>
 
-            <button id="signup-btn" style="width: 100%; margin-top: 15px; padding: 12px; cursor: pointer;">CREATE ACCOUNT</button>
-            <p style="margin-top: 15px; cursor: pointer; color: var(--primary);" onclick="toggleAuth()">Already have an account? Login</p>
+            <button id="signup-btn" class="auth-btn auth-btn-green">CREATE NODE</button>
+            <span class="toggle-link" onclick="toggleAuth()">< Return to Login</span>
         </div>
-        <p id="auth-error" style="color: #ef4444; margin-top: 15px; display: none;"></p>
     </div>
+
     <script src="auth.js"></script>
 </body>
 </html>
