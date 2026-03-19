@@ -3,34 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TurboType | Login</title>
+    <title>TurboType | Enter the Mainframe</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* Neon Upgrade for Login Box */
-        body { margin: 0; background: #0f172a; overflow: hidden; }
-        #ui-container {
-            position: relative;
-            z-index: 10;
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            box-shadow: 0 0 40px rgba(99, 102, 241, 0.15), inset 0 0 20px rgba(99, 102, 241, 0.05);
-            padding: 40px;
-        }
-        .arcade-title {
-            color: #fff;
-            text-shadow: 0 0 10px #6366f1, 0 0 20px #6366f1;
-            letter-spacing: 3px;
-        }
-        h2 { color: #cbd5e1; font-family: monospace; letter-spacing: 1px; }
-        #login-btn, #signup-btn {
-            background: #6366f1; color: white; border: none; font-weight: bold;
-            letter-spacing: 1px; transition: 0.3s; box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
-        }
-        #login-btn:hover, #signup-btn:hover {
-            transform: translateY(-2px); box-shadow: 0 0 25px rgba(99, 102, 241, 0.8);
-        }
-    </style>
     <script>
         if (localStorage.getItem('token')) {
             const urlParams = new URLSearchParams(window.location.search);
@@ -42,27 +16,128 @@
             }
         }
     </script>
+    <style>
+        body {
+            background: #020617; 
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Inter', monospace, sans-serif;
+        }
+
+        /* --- INTERACTIVE FLOATING KEYBOARD --- */
+        .keyboard-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 0; overflow: hidden; pointer-events: none;
+        }
+        
+        .key-wrapper {
+            position: absolute; bottom: -100px;
+            animation: floatUp linear infinite;
+        }
+
+        .floating-key {
+            width: 60px; height: 60px;
+            border-radius: 8px;
+            display: flex; justify-content: center; align-items: center;
+            font-family: monospace; font-size: 1.2rem; font-weight: bold;
+            transition: transform 0.15s ease-out, box-shadow 0.2s, background 0.2s;
+        }
+
+        /* Colors & Glows */
+        .key-green { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); color: rgba(16, 185, 129, 0.3); box-shadow: 0 0 15px rgba(16, 185, 129, 0.1); }
+        .key-blue { background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); color: rgba(59, 130, 246, 0.3); box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
+        .key-red { background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); color: rgba(239, 68, 68, 0.3); box-shadow: 0 0 15px rgba(239, 68, 68, 0.1); }
+
+        /* Cursor Interaction Classes */
+        .key-green.active { background: rgba(16, 185, 129, 0.2); color: #10b981; box-shadow: 0 0 30px rgba(16, 185, 129, 0.6); text-shadow: 0 0 10px #10b981; }
+        .key-blue.active { background: rgba(59, 130, 246, 0.2); color: #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); text-shadow: 0 0 10px #3b82f6; }
+        .key-red.active { background: rgba(239, 68, 68, 0.2); color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); text-shadow: 0 0 10px #ef4444; }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* --- NEON UI --- */
+        .neon-container {
+            position: relative; z-index: 10;
+            background: rgba(15, 23, 42, 0.85) !important;
+            border: 2px solid #3b82f6 !important;
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.3), inset 0 0 20px rgba(59, 130, 246, 0.2) !important;
+            backdrop-filter: blur(12px) !important;
+            border-radius: 16px !important;
+            padding: 40px !important;
+            width: 90%; max-width: 400px; margin: 10vh auto auto auto;
+        }
+
+        .neon-title {
+            color: #fff; text-align: center; margin-top: 0;
+            text-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6, 0 0 40px #3b82f6;
+            letter-spacing: 4px; font-weight: 900; font-size: 2.2rem;
+        }
+
+        .auth-input {
+            background: rgba(0, 0, 0, 0.5) !important;
+            border: 1px solid #334155 !important;
+            color: #fff !important;
+        }
+        .auth-input:focus { border-color: #10b981 !important; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+
+        .auth-btn {
+            background: #3b82f6; color: white; width: 100%; margin-top: 15px; padding: 14px; 
+            border: none; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer;
+            letter-spacing: 1px; transition: 0.2s; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        .auth-btn:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6); }
+        .auth-btn-green { background: #10b981; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
+        .auth-btn-green:hover { background: #059669; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6); }
+
+        .toggle-link {
+            display: block; text-align: center; margin-top: 20px; font-weight: bold;
+            color: #94a3b8; cursor: pointer; transition: 0.2s; font-size: 0.9rem;
+        }
+        .toggle-link:hover { color: #fff; text-shadow: 0 0 8px #fff; }
+    </style>
 </head>
 <body>
-    <div id="ui-container" style="max-width: 400px; margin: auto; margin-top: 10vh; border-radius: 16px;">
-        <h1 class="arcade-title">TURBO TYPE</h1>
+
+    <div class="keyboard-bg" id="key-bg">
+        <div class="key-wrapper" style="left: 10%; animation-duration: 12s; animation-delay: 0s;"><div class="floating-key key-blue">W</div></div>
+        <div class="key-wrapper" style="left: 25%; animation-duration: 15s; animation-delay: 2s;"><div class="floating-key key-green">{ }</div></div>
+        <div class="key-wrapper" style="left: 45%; animation-duration: 10s; animation-delay: 5s;"><div class="floating-key key-red">ESC</div></div>
+        <div class="key-wrapper" style="left: 60%; animation-duration: 14s; animation-delay: 1s;"><div class="floating-key key-blue">A</div></div>
+        <div class="key-wrapper" style="left: 75%; animation-duration: 11s; animation-delay: 4s;"><div class="floating-key key-green">=></div></div>
+        <div class="key-wrapper" style="left: 85%; animation-duration: 13s; animation-delay: 3s;"><div class="floating-key key-blue">S</div></div>
+        <div class="key-wrapper" style="left: 20%; animation-duration: 16s; animation-delay: 7s;"><div class="floating-key key-red">CTRL</div></div>
+        <div class="key-wrapper" style="left: 80%; animation-duration: 12s; animation-delay: 6s;"><div class="floating-key key-green">/</div></div>
+        <div class="key-wrapper" style="left: 35%; animation-duration: 18s; animation-delay: 8s;"><div class="floating-key key-blue">D</div></div>
+        <div class="key-wrapper" style="left: 50%; animation-duration: 14s; animation-delay: 9s;"><div class="floating-key key-red">ALT</div></div>
+    </div>
+
+    <div id="ui-container" class="neon-container">
+        <h1 class="neon-title">TURBO TYPE</h1>
         
         <div id="login-section">
-            <h2>LOGIN</h2>
-            <input type="text" id="login-id" class="diff-select" placeholder="Email or Gamertag">
-            <input type="password" id="login-pass" class="diff-select" placeholder="Password">
-            <button id="login-btn" style="width: 100%; margin-top: 20px; padding: 15px; border-radius: 8px; cursor: pointer;">ENTER SYSTEM</button>
-            <p style="margin-top: 20px; cursor: pointer; color: #a5b4fc; font-weight: bold; text-align: center;" onclick="toggleAuth()">Need an account? Sign up</p>
+            <h2 style="color: #94a3b8; text-align: center; font-size: 1rem; letter-spacing: 2px;">SYSTEM LOGIN</h2>
+            <input type="text" id="login-id" class="diff-select auth-input" placeholder="Email or Gamertag">
+            <input type="password" id="login-pass" class="diff-select auth-input" placeholder="Password">
+            
+            <p id="auth-error" style="color: #ef4444; display: none; text-align: center; font-weight: bold; margin-top: 10px; font-size: 0.9rem;"></p>
+            
+            <button id="login-btn" class="auth-btn">ENTER MAINFRAME</button>
+            <span class="toggle-link" onclick="toggleAuth()">Need an account? Init Signup_</span>
         </div>
 
         <div id="signup-section" style="display: none;">
-            <h2>SIGN UP</h2>
-            <input type="email" id="reg-email" class="diff-select" placeholder="Email">
-            <input type="text" id="reg-gamertag" class="diff-select" placeholder="Gamertag">
-            <input type="password" id="reg-pass" class="diff-select" placeholder="Password">
+            <h2 style="color: #94a3b8; text-align: center; font-size: 1rem; letter-spacing: 2px;">NEW USER REGISTRATION</h2>
+            <input type="email" id="reg-email" class="diff-select auth-input" placeholder="Email Address">
+            <input type="text" id="reg-gamertag" class="diff-select auth-input" placeholder="Gamertag">
+            <input type="password" id="reg-pass" class="diff-select auth-input" placeholder="Password">
             
-            <p style="text-align: left; margin-bottom: 5px; color: #94a3b8; font-weight: bold;">Select Avatar:</p>
-            <select id="reg-avatar" class="diff-select">
+            <p style="text-align: left; margin: 15px 0 5px 0; color: #94a3b8; font-size: 0.85rem; font-weight: bold;">SELECT AVATAR:</p>
+            <select id="reg-avatar" class="diff-select auth-input">
                 <option value="1">Ninja</option>
                 <option value="2">Racer</option>
                 <option value="3">Hacker</option>
@@ -70,78 +145,32 @@
                 <option value="5">Ghost</option>
             </select>
 
-            <button id="signup-btn" style="width: 100%; margin-top: 20px; padding: 15px; border-radius: 8px; cursor: pointer;">CREATE ACCOUNT</button>
-            <p style="margin-top: 20px; cursor: pointer; color: #a5b4fc; font-weight: bold; text-align: center;" onclick="toggleAuth()">Already have an account? Login</p>
+            <button id="signup-btn" class="auth-btn auth-btn-green">CREATE NODE</button>
+            <span class="toggle-link" onclick="toggleAuth()">< Return to Login</span>
         </div>
-        <p id="auth-error" style="color: #ef4444; margin-top: 15px; display: none; font-weight: bold; text-align: center; text-shadow: 0 0 10px #ef4444;"></p>
     </div>
 
     <script>
-        function initKeyboardBg() {
-            const canvas = document.createElement('canvas');
-            canvas.style.position = 'fixed';
-            canvas.style.top = '0'; canvas.style.left = '0';
-            canvas.style.width = '100vw'; canvas.style.height = '100vh';
-            canvas.style.zIndex = '1'; canvas.style.pointerEvents = 'none';
-            document.body.prepend(canvas);
+        document.addEventListener('mousemove', (e) => {
+            const keys = document.querySelectorAll('.floating-key');
+            keys.forEach(key => {
+                const rect = key.getBoundingClientRect();
+                const keyCenterX = rect.left + rect.width / 2;
+                const keyCenterY = rect.top + rect.height / 2;
+                const dist = Math.hypot(e.clientX - keyCenterX, e.clientY - keyCenterY);
 
-            const ctx = canvas.getContext('2d');
-            let w, h, cols, rows;
-            const size = 35; // Size of each key
-            let mouseX = -1000, mouseY = -1000;
-
-            function resize() {
-                w = canvas.width = window.innerWidth;
-                h = canvas.height = window.innerHeight;
-                cols = Math.ceil(w / size);
-                rows = Math.ceil(h / size);
-            }
-            window.addEventListener('resize', resize); resize();
-            window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
-
-            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*<>".split("");
-            const grid = Array.from({length: 3000}, () => chars[Math.floor(Math.random()*chars.length)]);
-
-            function draw() {
-                ctx.clearRect(0, 0, w, h);
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.font = '14px monospace';
-
-                let i = 0;
-                for (let y = 0; y < rows; y++) {
-                    for (let x = 0; x < cols; x++) {
-                        const px = x * size + size/2;
-                        const py = y * size + size/2;
-                        
-                        const dist = Math.hypot(mouseX - px, mouseY - py);
-                        let alpha = dist < 200 ? 1 - (dist / 200) : 0;
-
-                        if (Math.random() < 0.005) grid[i] = chars[Math.floor(Math.random()*chars.length)];
-
-                        // Draw Key Box
-                        ctx.beginPath();
-                        ctx.roundRect(px - size/2 + 2, py - size/2 + 2, size - 4, size - 4, 4);
-                        if (alpha > 0.05) {
-                            ctx.strokeStyle = `rgba(99, 102, 241, ${alpha + 0.2})`;
-                            ctx.fillStyle = `rgba(99, 102, 241, ${alpha * 0.15})`;
-                            ctx.shadowBlur = 15 * alpha; ctx.shadowColor = '#6366f1';
-                        } else {
-                            ctx.strokeStyle = `rgba(51, 65, 85, 0.3)`;
-                            ctx.fillStyle = 'transparent'; ctx.shadowBlur = 0;
-                        }
-                        ctx.fill(); ctx.stroke();
-
-                        // Draw Text
-                        ctx.fillStyle = alpha > 0.05 ? `rgba(255, 255, 255, ${alpha + 0.5})` : `rgba(100, 116, 139, 0.4)`;
-                        ctx.fillText(grid[i], px, py);
-                        i++;
-                    }
+                if (dist < 150) {
+                    // Magnetic Repel Effect + Glow Activation
+                    const pushX = ((keyCenterX - e.clientX) / dist) * 30;
+                    const pushY = ((keyCenterY - e.clientY) / dist) * 30;
+                    key.style.transform = `translate(${pushX}px, ${pushY}px) scale(1.2)`;
+                    key.classList.add('active');
+                } else {
+                    key.style.transform = `translate(0px, 0px) scale(1)`;
+                    key.classList.remove('active');
                 }
-                requestAnimationFrame(draw);
-            }
-            draw();
-        }
-        initKeyboardBg();
+            });
+        });
     </script>
     <script src="auth.js"></script>
 </body>
