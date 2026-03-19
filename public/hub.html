@@ -5,96 +5,175 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TurboType Hub</title>
     <style>
-        /* Keep your existing CSS here */
-        body { margin: 0; background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; position: relative; }
-        h1 { font-size: 3rem; color: #6366f1; text-transform: uppercase; letter-spacing: 4px; }
-        .menu { display: flex; gap: 20px; margin-top: 30px; }
-        .card { padding: 20px 40px; background: #222; border: 2px solid #333; border-radius: 12px; text-align: center; transition: 0.3s; cursor: pointer; text-decoration: none; color: white; }
-        .card:hover { border-color: #6366f1; transform: translateY(-5px); }
-        .card h2 { margin: 0 0 10px 0; }
-        .tag { font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; }
-        .online { background: #2ecc71; color: #000; }
-        .local { background: #f1c40f; color: #000; }
-
-        /* NEW: User Profile Header */
-        #user-header {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            background: #222;
-            padding: 10px 20px;
-            border-radius: 30px;
-            border: 1px solid #444;
+        body { 
+            margin: 0; background: #0f172a; color: white; 
+            font-family: 'Inter', sans-serif; display: flex; 
+            flex-direction: column; align-items: center; justify-content: center; 
+            height: 100vh; position: relative; overflow: hidden;
         }
-        #user-header span { font-weight: bold; color: #6366f1; }
-        .header-btn { background: none; border: none; color: white; cursor: pointer; font-size: 0.9rem; text-decoration: underline; }
+        
+        .content-wrapper { z-index: 10; text-align: center; }
+        
+        h1 { 
+            font-size: 3.5rem; color: #fff; text-transform: uppercase; 
+            letter-spacing: 6px; text-shadow: 0 0 15px #6366f1, 0 0 30px #6366f1; 
+            margin-bottom: 0;
+        }
+        .subtitle { color: #94a3b8; font-family: monospace; font-size: 1.2rem; letter-spacing: 2px; margin-bottom: 40px; }
+
+        .menu { display: flex; gap: 25px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+        
+        .card { 
+            padding: 30px 40px; background: rgba(15, 23, 42, 0.8); 
+            border: 2px solid #334155; border-radius: 16px; text-align: center; 
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+            cursor: pointer; text-decoration: none; color: white;
+            backdrop-filter: blur(10px); min-width: 200px;
+        }
+        
+        /* Neon Hover States for Cards */
+        .card.samurai:hover { border-color: #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.4), inset 0 0 15px rgba(59, 130, 246, 0.2); transform: translateY(-8px); }
+        .card.racing:hover { border-color: #f59e0b; box-shadow: 0 0 30px rgba(245, 158, 11, 0.4), inset 0 0 15px rgba(245, 158, 11, 0.2); transform: translateY(-8px); }
+        .card.syntax { border-color: rgba(16, 185, 129, 0.5); }
+        .card.syntax:hover { border-color: #10b981; box-shadow: 0 0 30px rgba(16, 185, 129, 0.4), inset 0 0 15px rgba(16, 185, 129, 0.2); transform: translateY(-8px); }
+        .card.raid { border-color: rgba(225, 29, 72, 0.5); }
+        .card.raid:hover { border-color: #e11d48; box-shadow: 0 0 30px rgba(225, 29, 72, 0.4), inset 0 0 15px rgba(225, 29, 72, 0.2); transform: translateY(-8px); }
+
+        .card h2 { margin: 0 0 15px 0; font-weight: 900; letter-spacing: 1px; }
+        .card p { color: #cbd5e1; font-size: 0.95rem; }
+        
+        .tag { font-size: 0.75rem; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-family: monospace; letter-spacing: 1px; }
+        .online { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
+        .local { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; }
+
+        /* User Header */
+        #user-header {
+            position: absolute; top: 25px; right: 30px; display: flex; align-items: center; gap: 20px;
+            background: rgba(15, 23, 42, 0.8); padding: 12px 25px; border-radius: 30px;
+            border: 1px solid #334155; backdrop-filter: blur(10px); z-index: 100;
+        }
+        #user-header span { font-weight: bold; color: #a5b4fc; }
+        .header-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: 0.2s; }
         .header-btn:hover { color: #ef4444; }
     </style>
     <script>
-        // ROUTE PROTECTION: If no token exists, redirect back to login immediately
-        if (!localStorage.getItem('token')) {
-            window.location.href = 'index.html';
-        }
+        if (!localStorage.getItem('token')) window.location.href = 'index.html';
     </script>
 </head>
 <body>
 
     <div id="user-header">
-        <div>Avatar <span id="display-avatar"></span></div>
+        <div style="color: #64748b; font-size: 0.9rem;">Avatar <span id="display-avatar"></span></div>
         <span id="display-gamertag"></span>
-        <a href="account.html" style="color: white; font-size: 0.9rem;">Account</a>
-        <button class="header-btn" onclick="logout()">Logout</button>
+        <a href="account.html" style="color: white; font-size: 0.9rem; text-decoration: none; font-weight: bold;">Account</a>
+        <button class="header-btn" onclick="logout()">Disconnect</button>
     </div>
 
-    <h1>Turbo Type</h1>
-    <p>Select a Game Mode</p>
+    <div class="content-wrapper">
+        <h1>TURBO TYPE</h1>
+        <p class="subtitle">SELECT INITIALIZATION PROTOCOL</p>
 
-    <div class="menu">
-        <a href="samurai_game.html" class="card">
-            <h2>Samurai Survival</h2>
-            <span class="tag online">Playable Online</span>
-            <p>Single Player Campaign</p>
-        </a>
+        <div class="menu">
+            <a href="samurai_game.html" class="card samurai">
+                <h2 style="color: #60a5fa;">Samurai Survival</h2>
+                <span class="tag online">SOLO CAMPAIGN</span>
+                <p>Adaptive difficulty combat loop.</p>
+            </a>
 
-        <a href="turbo_racing.html" class="card">
-            <h2>Turbo Racing</h2>
-            <span class="tag local">Requires Local Server</span>
-            <p>Multiplayer 1v1</p>
-        </a>
+            <a href="turbo_racing.html" class="card racing">
+                <h2 style="color: #fbbf24;">Turbo Racing</h2>
+                <span class="tag local">PvP MULTIPLAYER</span>
+                <p>AI-driven competitive tracks.</p>
+            </a>
 
-        <a href="syntax_arena.html" class="card" style="border-color: #10b981;">
-            <h2 style="color: #10b981;">Syntax Arena</h2>
-            <span class="tag online">PvP Online</span>
-            <p>Strict-Mode C++ Hacker Battles</p>
-        </a>
+            <a href="syntax_arena.html" class="card syntax">
+                <h2 style="color: #34d399;">Syntax Arena</h2>
+                <span class="tag online">PvP MULTIPLAYER</span>
+                <p>Strict-Mode C++ Hacker Battles.</p>
+            </a>
 
-        <a href="colosseum.html" class="card" style="border-color: #e11d48;">
-            <h2 style="color: #e11d48;">Colosseum Raid</h2>
-            <span class="tag online">Co-op PvE Server</span>
-            <p>Type Lore to Slay the Global Boss</p>
-        </a>
+            <a href="colosseum.html" class="card raid">
+                <h2 style="color: #fb7185;">Colosseum Raid</h2>
+                <span class="tag online">PvE CO-OP</span>
+                <p>Type Lore to Slay the Global Boss.</p>
+            </a>
+        </div>
     </div>
 
     <script>
-        if (!localStorage.getItem('token')) {
-            window.location.href = 'index.html';
-        } else {
-            // AUTO-RECONNECT: Prevent joining new games if locked in
+        function initKeyboardBg() {
+            const canvas = document.createElement('canvas');
+            canvas.style.position = 'fixed';
+            canvas.style.top = '0'; canvas.style.left = '0';
+            canvas.style.width = '100vw'; canvas.style.height = '100vh';
+            canvas.style.zIndex = '1'; canvas.style.pointerEvents = 'none';
+            document.body.prepend(canvas);
+
+            const ctx = canvas.getContext('2d');
+            let w, h, cols, rows;
+            const size = 35; 
+            let mouseX = -1000, mouseY = -1000;
+
+            function resize() {
+                w = canvas.width = window.innerWidth;
+                h = canvas.height = window.innerHeight;
+                cols = Math.ceil(w / size); rows = Math.ceil(h / size);
+            }
+            window.addEventListener('resize', resize); resize();
+            window.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*<>".split("");
+            const grid = Array.from({length: 3000}, () => chars[Math.floor(Math.random()*chars.length)]);
+
+            function draw() {
+                ctx.clearRect(0, 0, w, h);
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '14px monospace';
+
+                let i = 0;
+                for (let y = 0; y < rows; y++) {
+                    for (let x = 0; x < cols; x++) {
+                        const px = x * size + size/2; const py = y * size + size/2;
+                        const dist = Math.hypot(mouseX - px, mouseY - py);
+                        let alpha = dist < 200 ? 1 - (dist / 200) : 0;
+
+                        if (Math.random() < 0.005) grid[i] = chars[Math.floor(Math.random()*chars.length)];
+
+                        ctx.beginPath();
+                        ctx.roundRect(px - size/2 + 2, py - size/2 + 2, size - 4, size - 4, 4);
+                        if (alpha > 0.05) {
+                            ctx.strokeStyle = `rgba(99, 102, 241, ${alpha + 0.2})`;
+                            ctx.fillStyle = `rgba(99, 102, 241, ${alpha * 0.15})`;
+                            ctx.shadowBlur = 15 * alpha; ctx.shadowColor = '#6366f1';
+                        } else {
+                            ctx.strokeStyle = `rgba(51, 65, 85, 0.3)`;
+                            ctx.fillStyle = 'transparent'; ctx.shadowBlur = 0;
+                        }
+                        ctx.fill(); ctx.stroke();
+
+                        ctx.fillStyle = alpha > 0.05 ? `rgba(255, 255, 255, ${alpha + 0.5})` : `rgba(100, 116, 139, 0.4)`;
+                        ctx.fillText(grid[i], px, py);
+                        i++;
+                    }
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        }
+        initKeyboardBg();
+
+        // Hub Logic
+        if (localStorage.getItem('token')) {
             const activeRoomUrl = localStorage.getItem('activeRoomUrl');
             if (activeRoomUrl) {
                 alert("You are currently in an active game. Reconnecting...");
                 window.location.href = activeRoomUrl;
             }
         }
-
         document.getElementById('display-gamertag').innerText = localStorage.getItem('gamertag');
         document.getElementById('display-avatar').innerText = localStorage.getItem('avatar');
 
         function logout() {
-            localStorage.clear(); // Clears token AND active game locks
+            localStorage.clear(); 
             window.location.href = 'index.html';
         }
     </script>
