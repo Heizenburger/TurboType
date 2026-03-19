@@ -210,10 +210,13 @@ function completeWord() {
 
     if (closestEnemy && minDist < 380) {
         closestEnemy.destroy();
+        showFloatingText("HIT!", 0x00ff00); // <--- ADD THIS LINE
         if (currentSpawnDelay > 800) {
             currentSpawnDelay -= 50;
             spawnTimer.delay = currentSpawnDelay;
         }
+    } else {
+        showFloatingText("MISS!", 0xffa500); // <--- ADD THIS ELSE BLOCK
     }
 
     // Select next word based on dynamic difficulty multiplier
@@ -265,6 +268,12 @@ async function takeDamage(player, enemy) {
 
         wordText.setText(`GAME OVER\nWPM: ${finalWpm} | ACC: ${finalAcc}%\nPress ENTER to Return to Hub`).setAlign('center');
     }
+}
+
+function showFloatingText(msg, color) {
+    let popup = game.scene.scenes[0].add.text(player.x + 80, player.y - 100, msg, { fontSize: '32px', fontStyle: 'bold', fill: '#fff', stroke: '#000', strokeThickness: 4 });
+    popup.setTint(color);
+    game.scene.scenes[0].tweens.add({ targets: popup, y: popup.y - 60, alpha: 0, duration: 800, onComplete: () => popup.destroy() });
 }
 
 // Start sequence
