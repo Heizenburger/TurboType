@@ -172,7 +172,15 @@ function handleTyping(event) {
             
             if (userInput === currentWord) completeWord();
         } else {
-            wordText.setColor('#ff0000'); // Typo
+            // --- THE FIX IS HERE ---
+            wordText.setColor('#ff0000'); // Flash the target word Red
+            userInput = "";               // Wipe the bad input
+            scoreText.setText(userInput); // Clear the screen text so the user can start over
+            
+            // Optional: Automatically reset the target word color back to white after a fraction of a second
+            setTimeout(() => {
+                if(wordText && wordText.active) wordText.setColor('#ffffff');
+            }, 300);
         }
     } else if (event.keyCode === 8) { 
         userInput = userInput.slice(0, -1);
