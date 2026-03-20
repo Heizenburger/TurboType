@@ -16,90 +16,6 @@
             }
         }
     </script>
-    <style>
-        body {
-            background: #020617; 
-            margin: 0;
-            overflow: hidden;
-            font-family: 'Inter', monospace, sans-serif;
-        }
-
-        /* --- INTERACTIVE FLOATING KEYBOARD --- */
-        .keyboard-bg {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: 0; overflow: hidden; pointer-events: none;
-        }
-        
-        .key-wrapper {
-            position: absolute; bottom: -100px;
-            animation: floatUp linear infinite;
-        }
-
-        .floating-key {
-            width: 60px; height: 60px;
-            border-radius: 8px;
-            display: flex; justify-content: center; align-items: center;
-            font-family: monospace; font-size: 1.2rem; font-weight: bold;
-            transition: transform 0.15s ease-out, box-shadow 0.2s, background 0.2s;
-        }
-
-        /* Colors & Glows */
-        .key-green { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); color: rgba(16, 185, 129, 0.3); box-shadow: 0 0 15px rgba(16, 185, 129, 0.1); }
-        .key-blue { background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); color: rgba(59, 130, 246, 0.3); box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
-        .key-red { background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); color: rgba(239, 68, 68, 0.3); box-shadow: 0 0 15px rgba(239, 68, 68, 0.1); }
-
-        /* Cursor Interaction Classes */
-        .key-green.active { background: rgba(16, 185, 129, 0.2); color: #10b981; box-shadow: 0 0 30px rgba(16, 185, 129, 0.6); text-shadow: 0 0 10px #10b981; }
-        .key-blue.active { background: rgba(59, 130, 246, 0.2); color: #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); text-shadow: 0 0 10px #3b82f6; }
-        .key-red.active { background: rgba(239, 68, 68, 0.2); color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); text-shadow: 0 0 10px #ef4444; }
-
-        @keyframes floatUp {
-            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
-        }
-
-        /* --- NEON UI --- */
-        .neon-container {
-            position: relative; z-index: 10;
-            background: rgba(15, 23, 42, 0.85) !important;
-            border: 2px solid #3b82f6 !important;
-            box-shadow: 0 0 40px rgba(59, 130, 246, 0.3), inset 0 0 20px rgba(59, 130, 246, 0.2) !important;
-            backdrop-filter: blur(12px) !important;
-            border-radius: 16px !important;
-            padding: 40px !important;
-            width: 90%; max-width: 400px; margin: 10vh auto auto auto;
-        }
-
-        .neon-title {
-            color: #fff; text-align: center; margin-top: 0;
-            text-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6, 0 0 40px #3b82f6;
-            letter-spacing: 4px; font-weight: 900; font-size: 2.2rem;
-        }
-
-        .auth-input {
-            background: rgba(0, 0, 0, 0.5) !important;
-            border: 1px solid #334155 !important;
-            color: #fff !important;
-        }
-        .auth-input:focus { border-color: #10b981 !important; box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
-
-        .auth-btn {
-            background: #3b82f6; color: white; width: 100%; margin-top: 15px; padding: 14px; 
-            border: none; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer;
-            letter-spacing: 1px; transition: 0.2s; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-        }
-        .auth-btn:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6); }
-        .auth-btn-green { background: #10b981; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
-        .auth-btn-green:hover { background: #059669; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6); }
-
-        .toggle-link {
-            display: block; text-align: center; margin-top: 20px; font-weight: bold;
-            color: #94a3b8; cursor: pointer; transition: 0.2s; font-size: 0.9rem;
-        }
-        .toggle-link:hover { color: #fff; text-shadow: 0 0 8px #fff; }
-    </style>
 </head>
 <body>
 
@@ -117,7 +33,7 @@
     </div>
 
     <div id="ui-container" class="neon-container">
-        <h1 class="neon-title">TURBO TYPE</h1>
+        <h1 class="arcade-title">TURBO TYPE</h1>
         
         <div id="login-section">
             <h2 style="color: #94a3b8; text-align: center; font-size: 1rem; letter-spacing: 2px;">SYSTEM LOGIN</h2>
@@ -137,13 +53,33 @@
             <input type="password" id="reg-pass" class="diff-select auth-input" placeholder="Password">
             
             <p style="text-align: left; margin: 15px 0 5px 0; color: #94a3b8; font-size: 0.85rem; font-weight: bold;">SELECT AVATAR:</p>
-            <select id="reg-avatar" class="diff-select auth-input">
-                <option value="1">Ninja</option>
-                <option value="2">Racer</option>
-                <option value="3">Hacker</option>
-                <option value="4">Cyborg</option>
-                <option value="5">Ghost</option>
-            </select>
+            
+            <div style="display: flex; gap: 10px; justify-content: space-between; margin-bottom: 20px;">
+                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Ninja" class="avatar-option selected" data-avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Ninja" onclick="selectAvatar(this)" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.5); background: rgba(255,255,255,0.1); transition: 0.2s;">
+                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Racer" class="avatar-option" data-avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Racer" onclick="selectAvatar(this)" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; background: rgba(255,255,255,0.1); transition: 0.2s;">
+                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Hacker" class="avatar-option" data-avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Hacker" onclick="selectAvatar(this)" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; background: rgba(255,255,255,0.1); transition: 0.2s;">
+                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Cyborg" class="avatar-option" data-avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Cyborg" onclick="selectAvatar(this)" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; background: rgba(255,255,255,0.1); transition: 0.2s;">
+                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Ghost" class="avatar-option" data-avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Ghost" onclick="selectAvatar(this)" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; background: rgba(255,255,255,0.1); transition: 0.2s;">
+            </div>
+            
+            <input type="hidden" id="reg-avatar" value="https://api.dicebear.com/7.x/bottts/svg?seed=Ninja">
+
+            <script>
+                function selectAvatar(imgEl) {
+                    // Reset all borders
+                    document.querySelectorAll('.avatar-option').forEach(el => {
+                        el.style.borderColor = 'transparent';
+                        el.style.boxShadow = 'none';
+                        el.classList.remove('selected');
+                    });
+                    // Highlight selected
+                    imgEl.style.borderColor = '#10b981';
+                    imgEl.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.5)';
+                    imgEl.classList.add('selected');
+                    // Save to hidden input
+                    document.getElementById('reg-avatar').value = imgEl.getAttribute('data-avatar');
+                }
+            </script>
 
             <button id="signup-btn" class="auth-btn auth-btn-green">CREATE NODE</button>
             <span class="toggle-link" onclick="toggleAuth()">< Return to Login</span>

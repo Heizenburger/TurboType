@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     gamertag: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    avatar: { type: Number, default: 1 }, 
+    avatar: { type: String, default: 'https://api.dicebear.com/7.x/bottts/svg?seed=Ninja' }, 
     
     skillScore: { type: Number, default: 0 }, 
     globalMetrics: {

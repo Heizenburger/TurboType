@@ -4,96 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TurboType Hub</title>
-    <style>
-        body { 
-            margin: 0; background: #020617; color: white; 
-            font-family: 'Inter', sans-serif; display: flex; 
-            flex-direction: column; align-items: center; justify-content: center; 
-            height: 100vh; position: relative; overflow: hidden;
-        }
-
-        /* --- INTERACTIVE FLOATING KEYBOARD --- */
-        .keyboard-bg {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: 0; overflow: hidden; pointer-events: none;
-        }
-        .key-wrapper { position: absolute; bottom: -100px; animation: floatUp linear infinite; }
-        .floating-key {
-            width: 60px; height: 60px; border-radius: 8px;
-            display: flex; justify-content: center; align-items: center;
-            font-family: monospace; font-size: 1.2rem; font-weight: bold;
-            transition: transform 0.15s ease-out, box-shadow 0.2s, background 0.2s;
-        }
-
-        .key-green { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); color: rgba(16, 185, 129, 0.3); box-shadow: 0 0 15px rgba(16, 185, 129, 0.1); }
-        .key-blue { background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); color: rgba(59, 130, 246, 0.3); box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
-        .key-red { background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); color: rgba(239, 68, 68, 0.3); box-shadow: 0 0 15px rgba(239, 68, 68, 0.1); }
-
-        .key-green.active { background: rgba(16, 185, 129, 0.2); color: #10b981; box-shadow: 0 0 30px rgba(16, 185, 129, 0.6); text-shadow: 0 0 10px #10b981; }
-        .key-blue.active { background: rgba(59, 130, 246, 0.2); color: #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); text-shadow: 0 0 10px #3b82f6; }
-        .key-red.active { background: rgba(239, 68, 68, 0.2); color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); text-shadow: 0 0 10px #ef4444; }
-
-        @keyframes floatUp {
-            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(-120vh) rotate(360deg); opacity: 0; }
-        }
-
-        /* --- NEON CARDS --- */
-        .content-wrapper { z-index: 10; text-align: center; }
-        
-        h1 { 
-            font-size: 3.5rem; color: #fff; text-transform: uppercase; 
-            letter-spacing: 6px; text-shadow: 0 0 15px #3b82f6, 0 0 30px #3b82f6; 
-            margin-bottom: 0; font-weight: 900;
-        }
-        .subtitle { color: #94a3b8; font-family: monospace; font-size: 1.2rem; letter-spacing: 2px; margin-bottom: 40px; }
-
-        .menu { display: flex; gap: 25px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
-        
-        .card { 
-            padding: 30px 40px; background: rgba(15, 23, 42, 0.85); 
-            border: 2px solid #334155; border-radius: 16px; text-align: center; 
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
-            cursor: pointer; text-decoration: none; color: white;
-            backdrop-filter: blur(12px); min-width: 200px;
-        }
-        
-        /* THE FIX: Added base border colors for Samurai and Racing */
-        .card.samurai { border-color: rgba(59, 130, 246, 0.5); }
-        .card.samurai:hover { border-color: #3b82f6; box-shadow: 0 0 30px rgba(59, 130, 246, 0.4), inset 0 0 15px rgba(59, 130, 246, 0.2); transform: translateY(-8px); }
-        
-        .card.racing { border-color: rgba(245, 158, 11, 0.5); }
-        .card.racing:hover { border-color: #f59e0b; box-shadow: 0 0 30px rgba(245, 158, 11, 0.4), inset 0 0 15px rgba(245, 158, 11, 0.2); transform: translateY(-8px); }
-        
-        .card.syntax { border-color: rgba(16, 185, 129, 0.5); }
-        .card.syntax:hover { border-color: #10b981; box-shadow: 0 0 30px rgba(16, 185, 129, 0.4), inset 0 0 15px rgba(16, 185, 129, 0.2); transform: translateY(-8px); }
-        
-        .card.raid { border-color: rgba(225, 29, 72, 0.5); }
-        .card.raid:hover { border-color: #e11d48; box-shadow: 0 0 30px rgba(225, 29, 72, 0.4), inset 0 0 15px rgba(225, 29, 72, 0.2); transform: translateY(-8px); }
-
-        .card h2 { margin: 0 0 15px 0; font-weight: 900; letter-spacing: 1px; }
-        .card p { color: #cbd5e1; font-size: 0.95rem; }
-        
-        .tag { font-size: 0.75rem; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-family: monospace; letter-spacing: 1px; }
-        .online { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
-        .local { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; }
-
-        /* User Header */
-        #user-header {
-            position: absolute; top: 25px; right: 30px; display: flex; align-items: center; gap: 20px;
-            background: rgba(15, 23, 42, 0.85); padding: 12px 25px; border-radius: 30px;
-            border: 1px solid #3b82f6; backdrop-filter: blur(12px); z-index: 100;
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
-        }
-        #user-header span { font-weight: bold; color: #a5b4fc; }
-        .header-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: 0.2s; }
-        .header-btn:hover { color: #ef4444; }
-    </style>
+    <link rel="stylesheet" href="style.css">
     <script>
         if (!localStorage.getItem('token')) window.location.href = 'index.html';
     </script>
+    <style>
+        /* Hub Specific Centering & Grid Fixes */
+        #ui-container {
+            margin-top: 15vh !important; /* Pushes everything down to the center */
+            max-width: 800px; /* Keeps the grid tight and readable */
+        }
+        
+        .menu {
+            display: grid !important; 
+            grid-template-columns: repeat(2, 1fr) !important; /* Forces a perfect 2x2 Grid */
+            gap: 25px !important;
+            margin-top: 30px !important;
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%; 
+            box-sizing: border-box;
+        }
+        
+        /* Responsive fallback for mobile devices */
+        @media (max-width: 600px) {
+            .menu { grid-template-columns: 1fr !important; }
+            #ui-container { margin-top: 100px !important; }
+        }
+    </style>
 </head>
 <body>
 
@@ -111,15 +54,20 @@
     </div>
 
     <div id="user-header">
-        <div style="color: #64748b; font-size: 0.9rem;">Avatar <span id="display-avatar"></span></div>
-        <span id="display-gamertag"></span>
-        <a href="account.html" style="color: white; font-size: 0.9rem; text-decoration: none; font-weight: bold;">Account</a>
-        <button class="header-btn" onclick="logout()">Disconnect</button>
+        <div></div> 
+        <div class="header-right">
+            <a href="account.html" class="header-btn" style="color: white;">Account</a>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img id="display-avatar" src="" alt="Avatar" style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--primary-neon); background: rgba(255,255,255,0.05);">
+                <span id="display-gamertag" style="color: #a5b4fc; font-weight: bold; font-size: 1rem;"></span>
+            </div>
+            <button class="header-btn logout-btn" onclick="logout()">Disconnect</button>
+        </div>
     </div>
 
-    <div class="content-wrapper">
-        <h1>TURBO TYPE</h1>
-        <p class="subtitle">SELECT INITIALIZATION PROTOCOL</p>
+    <div id="ui-container">
+        <h1 class="arcade-title" style="font-size: 3.5rem; margin-bottom: 0;">TURBO TYPE</h1>
+        <p class="subtitle" style="margin-top: 10px;">SELECT INITIALIZATION PROTOCOL</p>
 
         <div class="menu">
             <a href="samurai_game.html" class="card samurai">
@@ -149,6 +97,7 @@
     </div>
 
     <script>
+        // Floating Keys Interaction
         document.addEventListener('mousemove', (e) => {
             const keys = document.querySelectorAll('.floating-key');
             keys.forEach(key => {
@@ -169,7 +118,7 @@
             });
         });
 
-        // Hub Logic
+        // Hub Logic & Auto-Reconnect
         if (localStorage.getItem('token')) {
             const activeRoomUrl = localStorage.getItem('activeRoomUrl');
             if (activeRoomUrl) {
@@ -177,8 +126,15 @@
                 window.location.href = activeRoomUrl;
             }
         }
+        
+        // Load User Data & Avatar into Header
+        let avatarUrl = localStorage.getItem('avatar');
+        if (avatarUrl && !avatarUrl.startsWith('http')) {
+            avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=Bot${avatarUrl}`;
+        }
+        
+        document.getElementById('display-avatar').src = avatarUrl;
         document.getElementById('display-gamertag').innerText = localStorage.getItem('gamertag');
-        document.getElementById('display-avatar').innerText = localStorage.getItem('avatar');
 
         function logout() {
             localStorage.clear(); 
