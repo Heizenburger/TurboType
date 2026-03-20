@@ -18,9 +18,6 @@ const io = new Server(server);
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
 
-// Safely point to the public folder
-app.use(express.static(path.join(__dirname, 'public'))); 
-
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'))); 
 
@@ -122,10 +119,11 @@ app.post('/api/game/end', authenticateToken, async (req, res) => {
         if (!user) return res.status(404).json({ error: "User not found" });
 
         const totalGames = 
-    user.games.turboRacing.played + 
-    user.games.samuraiTyping.played + 
-    user.games.syntaxArena.played + 
-    user.games.colosseumRaid.played + 1;
+            user.games.turboRacing.played + 
+            user.games.samuraiTyping.played + 
+            user.games.syntaxArena.played + 
+            user.games.colosseumRaid.played + 1;
+            
         user.globalMetrics.avgWpm = Math.round(((user.globalMetrics.avgWpm * (totalGames - 1)) + wpm) / totalGames);
         user.globalMetrics.avgAccuracy = Math.round(((user.globalMetrics.avgAccuracy * (totalGames - 1)) + accuracy) / totalGames);
         if (burstSpeed > user.globalMetrics.peakBurstSpeed) user.globalMetrics.peakBurstSpeed = Math.round(burstSpeed);
@@ -171,19 +169,21 @@ app.get('/api/leaderboards', async (req, res) => {
 // --- UNIFIED ROOM ARCHITECTURE ---
 const activeRooms = {};
 const BOSS_MAX_HP = 5000;
+let waitingPlayer = null; // FIXED: Prevented server crash
 
 function generateRoomCode() {
     return Math.random().toString(36).substring(2, 8).toUpperCase(); 
 }
 
-async function generateTypingText(difficultyLevel, lengthLevel) {
+// FIXED: Consolidated the duplicate AI text generation functions
+async function generateTypingText(difficultyLevel, lengthLevel = 2) {
     let wordCount = 50; 
     if (lengthLevel === 1) wordCount = 20;       
     else if (lengthLevel === 2) wordCount = 50;  
     else if (lengthLevel === 3) wordCount = 120; 
 
     let prompt = "";
-    if (difficultyLevel === 1) prompt = `Generate a text containing exactly ${wordCount} words. USE ONLY extremely simple, 3-to-4 letter words (like cat, dog, run, the, sun). DO NOT use any punctuation marks whatsoever (no commas, no periods). DO NOT use any capital letters. DO NOT use numbers. The output MUST be 100% lowercase plain text consisting only of easy words.`;
+    if (difficultyLevel === 1) prompt = `Generate a text containing exactly ${wordCount} words. USE ONLY extremely simple, 3-to-4 letter words. DO NOT use any punctuation marks whatsoever. The output MUST be 100% lowercase plain text consisting only of easy words.`;
     else if (difficultyLevel === 2) prompt = `Write a standard ${wordCount}-word paragraph about technology or racing. Use normal sentence structure, basic punctuation (commas, periods), and standard capitalization.`;
     else prompt = `Write a highly complex ${wordCount}-word paragraph for an advanced typing test. Include difficult vocabulary, frequent numbers, and special characters like parentheses (), quotes, semicolons, and hyphens.`;
 
@@ -191,7 +191,6 @@ async function generateTypingText(difficultyLevel, lengthLevel) {
         const result = await model.generateContent(prompt);
         let text = result.response.text().replace(/\n/g, ' ').trim();
         
-        // Hard enforce Easy Mode rules in case AI hallucinates punctuation
         if (difficultyLevel === 1) {
             text = text.toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ');
         }
@@ -201,75 +200,77 @@ async function generateTypingText(difficultyLevel, lengthLevel) {
     }
 }
 
-async function generateSyntaxSnippet(skillCeiling, language) {
-    let prompt = "";
-    const langStr = language || "JavaScript"; // Default fallback
-    
-    // SCALE DIFFICULTY BASED ON ROOM'S HIGHEST SKILL SCORE
-    if (skillCeiling < 200) {
-        prompt = `Write a simple 4 to 5 line ${langStr} code snippet demonstrating basic variable assignments and print statements. Do not include comments or markdown formatting. Output raw code only.`;
-    } else if (skillCeiling < 600) {
-        prompt = `Write a 6 to 8 line ${langStr} code snippet demonstrating a for-loop, standard functions, and basic arrays. Do not include comments or markdown formatting. Output raw code only.`;
-    } else {
-        prompt = `Write an advanced 8 to 10 line ${langStr} code snippet demonstrating complex object-oriented structures, asynchronous logic, or pointer arithmetic (depending on the language). Use precise syntax. Do not include comments or markdown formatting. Output raw code only.`;
-    }
-
-    try {
-        const result = await model.generateContent(prompt);
-        let text = result.response.text();
-        // Clean up markdown code block fences if AI includes them
-        text = text.replace(/```[a-z]*\n?/gi, "").replace(/```/g, "").trim();
-        return text;
-    } catch (error) {
-        return `function fallback() {\n  return "AI Generation Failed";\n}`; 
-    }
-}
-
-// Helper function to generate text based on difficulty level
-async function generateTypingText(difficultyLevel) {
-    let prompt = "";
-    if (difficultyLevel === 1) {
-        prompt = "Write a simple, 30-word paragraph using only easy, common vocabulary. Do not use any punctuation marks or numbers. Just plain lowercase words.";
-    } else if (difficultyLevel === 2) {
-        prompt = "Write a standard 40-word paragraph about technology or racing. Use normal sentence structure, basic punctuation (commas, periods), and standard capitalization.";
-    } else {
-        prompt = "Write a highly complex 40-word paragraph for an advanced typing test. Include difficult vocabulary, frequent numbers, and special characters like parentheses (), quotes, semicolons, and hyphens.";
-    }
-
-    try {
-        const result = await model.generateContent(prompt);
-        // Clean up the text (remove newlines, extra spaces, etc.)
-        return result.response.text().replace(/\n/g, ' ').trim();
-    } catch (error) {
-        console.error("Gemini API Error:", error);
-        return "Fallback text because the API failed. Typing speed is a fundamental skill in the digital age.";
-    }
-}
-
+// --- SOCKET.IO MULTIPLAYER LOGIC ---
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    socket.on('joinGame', async (data) => {
-        const player = {
-            id: socket.id,
-            name: data.name,
-            difficulty: data.difficulty,
-            socket: socket
+    // FIXED: Added createRoom so users can host Racing and Raid
+    socket.on('createRoom', async (data) => {
+        const roomCode = generateRoomCode();
+        activeRooms[roomCode] = {
+            roomCode: roomCode,
+            gameMode: data.gameMode || 'turboRacing',
+            status: 'waiting',
+            players: { [socket.id]: { id: socket.id, name: data.name, progress: 0, wpm: 0 } }
         };
 
+        if (data.gameMode === 'colosseumRaid') {
+            const loreText = await generateTypingText(3, 3);
+            activeRooms[roomCode].boss = { maxHp: BOSS_MAX_HP, hp: BOSS_MAX_HP, activeLore: loreText };
+        }
+
+        socket.join(roomCode);
+        socket.emit('roomCreated', { roomCode: roomCode, boss: activeRooms[roomCode].boss });
+    });
+
+    // FIXED: Added joinRoom so friends can connect to each other
+    socket.on('joinRoom', async (data) => {
+        const room = activeRooms[data.roomCode];
+        if (!room) return socket.emit('roomError', 'Room not found.');
+        
+        room.players[socket.id] = { id: socket.id, name: data.name, progress: 0, wpm: 0 };
+        socket.join(data.roomCode);
+
+        if (room.gameMode === 'turboRacing' && Object.keys(room.players).length === 2) {
+            room.status = 'playing';
+            const text = await generateTypingText(2, 2);
+            io.to(data.roomCode).emit('matchStart', { players: room.players, text: text });
+        } else if (room.gameMode === 'colosseumRaid') {
+            socket.emit('raidState', { roomCode: data.roomCode, boss: room.boss });
+            socket.to(data.roomCode).emit('playerJoinedRaid', { name: data.name });
+        }
+    });
+
+    // Handle Turbo Racing specific progress
+    socket.on('updateProgress', (data) => {
+        socket.to(data.roomCode).emit('opponentProgress', data);
+    });
+
+    // Handle Colosseum Raid Boss Damage
+    socket.on('dealDamage', (data) => {
+        const room = activeRooms[data.roomCode];
+        if (room && room.boss && room.boss.hp > 0) {
+            room.boss.hp = Math.max(0, room.boss.hp - data.damage);
+            io.to(data.roomCode).emit('bossHit', { newHp: room.boss.hp });
+
+            if (room.boss.hp === 0) {
+                io.to(data.roomCode).emit('bossDefeated', { message: "The Boss has fallen!" });
+            }
+        }
+    });
+
+    // Generic matchmaking logic for randoms
+    socket.on('joinGame', async (data) => {
+        const player = { id: socket.id, name: data.name, difficulty: data.difficulty, socket: socket };
+
         if (waitingPlayer) {
-            // We have a match!
             const p1 = waitingPlayer;
             const p2 = player;
-            waitingPlayer = null; // Clear queue
+            waitingPlayer = null; 
 
-            // 1. Resolve difficulty: Pick the highest (hardest) value between the two players
             const resolvedDifficulty = Math.max(p1.difficulty, p2.difficulty);
-
-            // 2. Generate the paragraph using Gemini
             const generatedText = await generateTypingText(resolvedDifficulty);
 
-            // 3. Send the match data AND the text to both players
             const matchData = {
                 players: [
                     { id: p1.id, name: p1.name },
@@ -280,33 +281,23 @@ io.on('connection', (socket) => {
 
             p1.socket.emit('matchFound', matchData);
             p2.socket.emit('matchFound', matchData);
-            
-            // Set up progress syncing between these two specific players
-            p1.socket.on('updateProgress', (progressData) => p2.socket.emit('opponentProgress', progressData));
-            p2.socket.on('updateProgress', (progressData) => p1.socket.emit('opponentProgress', progressData));
-
         } else {
-            // Nobody is waiting, put this player in the queue
             waitingPlayer = player;
         }
     });
 
     socket.on('disconnect', () => {
-        if (waitingPlayer && waitingPlayer.id === socket.id) {
-            waitingPlayer = null;
-        }
+        if (waitingPlayer && waitingPlayer.id === socket.id) waitingPlayer = null;
     });
 });
 
-// 7. SYNTAX ARENA PHYSICS LOOP (30 FPS)
+// SYNTAX ARENA PHYSICS LOOP (30 FPS)
 setInterval(() => {
     for (const roomCode in activeRooms) {
         const room = activeRooms[roomCode];
         if (room.gameMode === 'syntaxArena' && room.status === 'playing') {
-            // Broadcast exact core position to clients
             io.to(roomCode).emit('syntaxCoreUpdate', { corePosition: room.corePosition });
             
-            // Evaluate Match Win Condition
             if (room.corePosition <= -100 || room.corePosition >= 100) {
                 room.status = 'finished';
                 const winnerDirection = room.corePosition <= -100 ? -1 : 1;
