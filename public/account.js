@@ -1,6 +1,9 @@
 // Load header info
+let avatarUrl = localStorage.getItem('avatar');
+if (avatarUrl && !avatarUrl.startsWith('http')) avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=Bot${avatarUrl}`;
+
+document.getElementById('display-avatar').src = avatarUrl;
 document.getElementById('display-gamertag').innerText = localStorage.getItem('gamertag');
-document.getElementById('display-avatar').innerText = localStorage.getItem('avatar');
 
 function logout() {
     localStorage.removeItem('token');
@@ -32,6 +35,11 @@ async function fetchUserData() {
 }
 
 function populateDashboard(user) {
+    let dbAvatar = user.avatar;
+    if (dbAvatar && !dbAvatar.startsWith('http')) dbAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=Bot${dbAvatar}`;
+    
+    document.getElementById('profile-avatar-large').src = dbAvatar;
+    document.getElementById('profile-gamertag-large').innerText = user.gamertag;
     // Fill in the input fields
     document.getElementById('update-gamertag').value = user.gamertag;
 

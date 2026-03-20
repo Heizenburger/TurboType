@@ -14,8 +14,12 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// Initialize Gemini using the secure environment variable
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
+
+// Safely point to the public folder
+app.use(express.static(path.join(__dirname, 'public'))); 
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'))); 
@@ -221,305 +225,75 @@ async function generateSyntaxSnippet(skillCeiling, language) {
     }
 }
 
+// Helper function to generate text based on difficulty level
+async function generateTypingText(difficultyLevel) {
+    let prompt = "";
+    if (difficultyLevel === 1) {
+        prompt = "Write a simple, 30-word paragraph using only easy, common vocabulary. Do not use any punctuation marks or numbers. Just plain lowercase words.";
+    } else if (difficultyLevel === 2) {
+        prompt = "Write a standard 40-word paragraph about technology or racing. Use normal sentence structure, basic punctuation (commas, periods), and standard capitalization.";
+    } else {
+        prompt = "Write a highly complex 40-word paragraph for an advanced typing test. Include difficult vocabulary, frequent numbers, and special characters like parentheses (), quotes, semicolons, and hyphens.";
+    }
+
+    try {
+        const result = await model.generateContent(prompt);
+        // Clean up the text (remove newlines, extra spaces, etc.)
+        return result.response.text().replace(/\n/g, ' ').trim();
+    } catch (error) {
+        console.error("Gemini API Error:", error);
+        return "Fallback text because the API failed. Typing speed is a fundamental skill in the digital age.";
+    }
+}
+
 io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    console.log('A user connected:', socket.id);
 
-    // 1. Create a Unified Room
-    socket.on('createRoom', async (data) => {
-        const roomCode = generateRoomCode();
-        socket.join(roomCode);
-        
-        let userSkillScore = 0;
-        try {
-            const user = await User.findOne({ gamertag: data.name });
-            if (user) userSkillScore = user.skillScore;
-        } catch (e) {}
-        
-        activeRooms[roomCode] = {
-            id: roomCode,
-            gameMode: data.gameMode,
-            players: { [data.name]: { 
-                id: socket.id, 
-                name: data.name, 
-                progress: 0, 
-                wpm: 0, 
-                connected: true, 
-                skillScore: userSkillScore, 
-                wantsRematch: false,
-                language: data.language || 'JavaScript' // Store Player's Chosen Language
-            } },
-            status: data.gameMode === 'colosseumRaid' ? 'playing' : 'waiting',
-            text: null, snippet: null, boss: null, disconnectTimer: null,
-            corePosition: 0 // TUG-OF-WAR ENGINE TRACKER
+    socket.on('joinGame', async (data) => {
+        const player = {
+            id: socket.id,
+            name: data.name,
+            difficulty: data.difficulty,
+            socket: socket
         };
-        
-        if (data.gameMode === 'turboRacing') {
-            activeRooms[roomCode].length = data.length;
-        } else if (data.gameMode === 'colosseumRaid') {
-            activeRooms[roomCode].boss = { hp: BOSS_MAX_HP, maxHp: BOSS_MAX_HP, activeLore: "The massive obsidian behemoth rises from the ashes of the ruined arena. Its eyes burn with the fury of a thousand crashed servers. You must band together, synchronize your keystrokes, and strike with absolute precision to shatter its impenetrable armor." };
-        }
-        
-        socket.emit('roomCreated', { roomCode, boss: activeRooms[roomCode].boss });
-    });
 
-    // 2. Join a Unified Room
-    socket.on('joinRoom', async (data) => {
-        const room = activeRooms[data.roomCode];
-        if (!room) return socket.emit('roomError', "Room not found or expired.");
+        if (waitingPlayer) {
+            // We have a match!
+            const p1 = waitingPlayer;
+            const p2 = player;
+            waitingPlayer = null; // Clear queue
 
-        // Crash Recovery Rejoin Logic
-        if (room.players[data.name]) {
-            if (room.status === 'waiting' && room.gameMode !== 'colosseumRaid') {
-                socket.join(data.roomCode);
-                room.players[data.name].id = socket.id;
-                room.players[data.name].connected = true;
-                return socket.emit('roomCreated', { roomCode: data.roomCode });
-            }
+            // 1. Resolve difficulty: Pick the highest (hardest) value between the two players
+            const resolvedDifficulty = Math.max(p1.difficulty, p2.difficulty);
 
-            if (room.status === 'playing' && room.gameMode !== 'colosseumRaid' && !room.text && !room.snippet) {
-                return socket.emit('roomError', "Match is starting, please wait...");
-            }
+            // 2. Generate the paragraph using Gemini
+            const generatedText = await generateTypingText(resolvedDifficulty);
+
+            // 3. Send the match data AND the text to both players
+            const matchData = {
+                players: [
+                    { id: p1.id, name: p1.name },
+                    { id: p2.id, name: p2.name }
+                ],
+                text: generatedText
+            };
+
+            p1.socket.emit('matchFound', matchData);
+            p2.socket.emit('matchFound', matchData);
             
-            socket.join(data.roomCode);
-            clearTimeout(room.disconnectTimer); 
-            room.players[data.name].id = socket.id;
-            room.players[data.name].connected = true;
-            
-            if (room.gameMode === 'colosseumRaid') {
-                socket.emit('rejoinRaidSuccess', { boss: room.boss, players: Object.values(room.players) });
-            } else if (room.gameMode === 'syntaxArena') {
-                socket.emit('rejoinSuccess', { snippet: room.snippet, players: Object.values(room.players) });
-            } else {
-                socket.emit('rejoinSuccess', { text: room.text, players: Object.values(room.players) });
-            }
-            
-            socket.to(data.roomCode).emit('opponentReconnected', { name: data.name });
-            return;
-        }
+            // Set up progress syncing between these two specific players
+            p1.socket.on('updateProgress', (progressData) => p2.socket.emit('opponentProgress', progressData));
+            p2.socket.on('updateProgress', (progressData) => p1.socket.emit('opponentProgress', progressData));
 
-        // Normal Join Logic
-        if (room.gameMode !== 'colosseumRaid') {
-            if (room.status === 'playing') return socket.emit('roomError', "Match already in progress.");
-            if (Object.keys(room.players).length >= 2) return socket.emit('roomError', "Room is full.");
-        }
-
-        let userSkillScore = 0;
-        try {
-            const user = await User.findOne({ gamertag: data.name });
-            if (user) userSkillScore = user.skillScore;
-        } catch (e) {}
-
-        socket.join(data.roomCode);
-        room.players[data.name] = { 
-            id: socket.id, 
-            name: data.name, 
-            progress: 0, 
-            wpm: 0, 
-            connected: true, 
-            skillScore: userSkillScore, 
-            wantsRematch: false,
-            language: data.language || 'JavaScript' // Store Challenger's Chosen Language
-        };
-        
-        if (room.gameMode === 'colosseumRaid') {
-            socket.emit('raidState', { boss: room.boss, players: Object.values(room.players) });
-            socket.to(data.roomCode).emit('playerJoinedRaid', { name: data.name });
-            return;
-        }
-
-        room.status = 'playing';
-        socket.emit('roomError', "Generating AI Content...");
-
-        if (room.gameMode === 'turboRacing') {
-            const p1 = Object.values(room.players)[0];
-            const p2 = Object.values(room.players)[1];
-            const minSkill = Math.min(p1.skillScore || 0, p2.skillScore || 0);
-            
-            let difficulty = 2; // Default Medium
-            if (minSkill < 250) difficulty = 1;
-            else if (minSkill >= 250 && minSkill < 700) difficulty = 2;
-            else difficulty = 3;
-
-            room.text = await generateTypingText(difficulty, room.length);
-            io.to(data.roomCode).emit('matchStart', { text: room.text, players: Object.values(room.players) });
-            
-        } else if (room.gameMode === 'syntaxArena') {
-            const players = Object.values(room.players);
-            const p1 = players[0];
-            const p2 = players[1];
-            
-            // 1. LANGUAGE RESOLUTION
-            let selectedLanguage = p1.language;
-            if (p1.language !== p2.language) {
-                selectedLanguage = Math.random() > 0.5 ? p1.language : p2.language;
-            }
-            room.selectedLanguage = selectedLanguage;
-
-            // 2. SKILL CEILING & UNDERDOG MULTIPLIERS
-            const ceiling = Math.max(p1.skillScore || 0, p2.skillScore || 0);
-            
-            // Calculate pull weight multiplier for each player (min 1x, bounded to 10 minimum score safety)
-            p1.pullMultiplier = Math.max(1, ceiling / Math.max(10, p1.skillScore || 10));
-            p2.pullMultiplier = Math.max(1, ceiling / Math.max(10, p2.skillScore || 10));
-            
-            // Setup Tug-of-War directional limits (-1 pulls left, 1 pulls right)
-            p1.tugDirection = -1;
-            p2.tugDirection = 1;
-            
-            // Generate Code via Gemini!
-            room.snippet = await generateSyntaxSnippet(ceiling, selectedLanguage);
-            io.to(data.roomCode).emit('syntaxMatchFound', { 
-                snippet: room.snippet, 
-                selectedLanguage: selectedLanguage,
-                players: players 
-            });
+        } else {
+            // Nobody is waiting, put this player in the queue
+            waitingPlayer = player;
         }
     });
 
-    // 3. Multi-Game Progress Synchronization
-    socket.on('updateProgress', (data) => {
-        const room = activeRooms[data.roomCode];
-        if (room && room.players[data.name]) {
-            room.players[data.name].progress = data.progress;
-            room.players[data.name].wpm = data.wpm;
-            socket.to(data.roomCode).emit('opponentProgress', data);
-        }
-    });
-
-    // REPLACED OLD 'syntaxProgress' WITH NEW TUG-OF-WAR ENGINE
-    socket.on('syntaxKeystroke', (data) => {
-        const room = activeRooms[data.roomCode];
-        if (room && room.gameMode === 'syntaxArena' && room.status === 'playing') {
-            const player = room.players[data.name];
-            if (player) {
-                // Calculate physical pull force based on snippet length and player's handicap
-                const baseForce = 100 / Math.max(10, room.snippet.length / 2);
-                const pullForce = baseForce * player.pullMultiplier;
-                
-                room.corePosition += player.tugDirection * pullForce;
-                
-                // Clamp position to exact limits
-                if (room.corePosition < -100) room.corePosition = -100;
-                if (room.corePosition > 100) room.corePosition = 100;
-            }
-        }
-    });
-
-    socket.on('syntaxSabotage', (data) => {
-        socket.to(data.roomCode).emit('receiveSabotage');
-    });
-
-    socket.on('dealDamage', (data) => {
-        const room = activeRooms[data.roomCode];
-        if (room && room.gameMode === 'colosseumRaid' && room.boss.hp > 0) {
-            room.boss.hp -= data.damage;
-            if (room.boss.hp < 0) room.boss.hp = 0;
-
-            io.to(data.roomCode).emit('bossHit', { attacker: data.name, damage: data.damage, newHp: room.boss.hp });
-
-            if (room.boss.hp <= 0) {
-                io.to(data.roomCode).emit('bossDefeated', { message: "THE BEHEMOTH HAS FALLEN!" });
-                setTimeout(() => {
-                    if (activeRooms[data.roomCode]) {
-                        activeRooms[data.roomCode].boss.hp = BOSS_MAX_HP;
-                        io.to(data.roomCode).emit('bossRespawned', activeRooms[data.roomCode].boss);
-                    }
-                }, 10000);
-            }
-        }
-    });
-
-    // 4. Handle Disconnections
     socket.on('disconnect', () => {
-        for (const roomCode in activeRooms) {
-            const room = activeRooms[roomCode];
-            const playerEntry = Object.values(room.players).find(p => p.id === socket.id);
-            
-            if (playerEntry) {
-                playerEntry.connected = false;
-                
-                if (room.gameMode === 'colosseumRaid') {
-                    socket.to(roomCode).emit('playerLeftRaid', { name: playerEntry.name });
-                    const anyConnected = Object.values(room.players).some(p => p.connected);
-                    if (!anyConnected) {
-                        room.disconnectTimer = setTimeout(() => { delete activeRooms[roomCode]; }, 60000);
-                    }
-                    break;
-                }
-
-                if (room.status === 'waiting') {
-                    delete activeRooms[roomCode];
-                    return;
-                }
-
-                socket.to(roomCode).emit('opponentDisconnected', { name: playerEntry.name });
-                
-                room.disconnectTimer = setTimeout(() => {
-                    io.to(roomCode).emit('forfeitWin', { message: `${playerEntry.name} abandoned the match.` });
-                    delete activeRooms[roomCode];
-                }, 60000); 
-                break;
-            }
-        }
-    });
-
-    // 5. Handle Voluntary Exits
-    socket.on('leaveRoom', (data) => {
-        const room = activeRooms[data.roomCode];
-        if (room) {
-            if (room.gameMode === 'colosseumRaid') {
-                delete room.players[data.name];
-                socket.to(data.roomCode).emit('playerLeftRaid', { name: data.name });
-            } else {
-                socket.to(data.roomCode).emit('forfeitWin', { message: "Opponent surrendered." });
-                delete activeRooms[data.roomCode];
-            }
-        }
-    });
-
-    // 6. Handle Seamless Rematch Requests
-    socket.on('requestRematch', async (data) => {
-        const room = activeRooms[data.roomCode];
-        if (room && room.players[data.name]) {
-            room.players[data.name].wantsRematch = true;
-            const players = Object.values(room.players);
-            
-            // Check if both players clicked Rematch
-            if (players.length === 2 && players.every(p => p.wantsRematch)) {
-                io.to(data.roomCode).emit('rematchGenerating');
-
-                // Reset player stats for the new match
-                players.forEach(p => { 
-                    p.progress = 0; 
-                    p.wpm = 0; 
-                    p.wantsRematch = false; 
-                });
-                
-                if (room.gameMode === 'syntaxArena') {
-                    room.corePosition = 0;
-                    room.status = 'playing';
-                    const ceiling = Math.max(players[0].skillScore || 0, players[1].skillScore || 0);
-                    room.snippet = await generateSyntaxSnippet(ceiling, room.selectedLanguage);
-                    io.to(data.roomCode).emit('syntaxMatchFound', { 
-                        snippet: room.snippet, 
-                        selectedLanguage: room.selectedLanguage,
-                        players: players 
-                    });
-                } else if (room.gameMode === 'turboRacing') {
-                    // Recalculate adaptive difficulty
-                    const minSkill = Math.min(players[0].skillScore || 0, players[1].skillScore || 0);
-                    let difficulty = 2; 
-                    if (minSkill < 250) difficulty = 1;
-                    else if (minSkill >= 250 && minSkill < 700) difficulty = 2;
-                    else difficulty = 3;
-
-                    room.text = await generateTypingText(difficulty, room.length);
-                    io.to(data.roomCode).emit('matchStart', { text: room.text, players: players });
-                }
-            } else {
-                // Let the other player know we are waiting for them
-                socket.to(data.roomCode).emit('rematchRequested');
-            }
+        if (waitingPlayer && waitingPlayer.id === socket.id) {
+            waitingPlayer = null;
         }
     });
 });
