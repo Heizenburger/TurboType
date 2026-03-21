@@ -14,7 +14,6 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Initialize Gemini using the secure environment variable
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
 
@@ -41,7 +40,6 @@ app.post('/api/register', async (req, res) => {
 
         res.status(201).json({ message: "Account created successfully!" });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: "Server error during registration." });
     }
 });
@@ -58,7 +56,6 @@ app.post('/api/login', async (req, res) => {
         const token = jwt.sign({ id: user._id, gamertag: user.gamertag, avatar: user.avatar }, process.env.JWT_SECRET, { expiresIn: '24h' });
         res.json({ token, gamertag: user.gamertag, avatar: user.avatar });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: "Server error during login." });
     }
 });
@@ -66,7 +63,7 @@ app.post('/api/login', async (req, res) => {
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; 
-    if (!token) return res.status(401).json({ error: "Access denied. No token provided." });
+    if (!token) return res.status(401).json({ error: "Access denied." });
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) return res.status(403).json({ error: "Invalid or expired token." });
@@ -82,7 +79,6 @@ app.get('/api/account', authenticateToken, async (req, res) => {
         if (!user) return res.status(404).json({ error: "User not found." });
         res.json(user);
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: "Server error fetching account data." });
     }
 });
@@ -98,16 +94,13 @@ app.put('/api/account/update', authenticateToken, async (req, res) => {
             if (existingTag) return res.status(400).json({ error: "Gamertag is already taken." });
             user.gamertag = gamertag;
         }
-
         if (password && password.trim().length > 0) {
             const salt = await bcrypt.genSalt(10);
             user.password = await bcrypt.hash(password, salt);
         }
-
         await user.save();
         res.json({ message: "Profile updated successfully." });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ error: "Server error updating profile." });
     }
 });
@@ -118,11 +111,7 @@ app.post('/api/game/end', authenticateToken, async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        const totalGames = 
-            user.games.turboRacing.played + 
-            user.games.samuraiTyping.played + 
-            user.games.syntaxArena.played + 
-            user.games.colosseumRaid.played + 1;
+        const totalGames = user.games.turboRacing.played + user.games.samuraiTyping.played + user.games.syntaxArena.played + user.games.colosseumRaid.played + 1;
             
         user.globalMetrics.avgWpm = Math.round(((user.globalMetrics.avgWpm * (totalGames - 1)) + wpm) / totalGames);
         user.globalMetrics.avgAccuracy = Math.round(((user.globalMetrics.avgAccuracy * (totalGames - 1)) + accuracy) / totalGames);
@@ -150,7 +139,6 @@ app.post('/api/game/end', authenticateToken, async (req, res) => {
         await user.save();
         res.json({ message: "Stats saved successfully", newSkillScore: user.skillScore });
     } catch (error) {
-        console.error("Error saving game stats:", error);
         res.status(500).json({ error: "Server error saving game stats." });
     }
 });
@@ -160,43 +148,95 @@ app.get('/api/leaderboards', async (req, res) => {
         const topPlayers = await User.find().sort({ skillScore: -1 }).limit(10).select('gamertag avatar skillScore games'); 
         res.json(topPlayers);
     } catch (error) {
-        console.error("Leaderboard fetch error:", error);
         res.status(500).json({ error: "Server error fetching leaderboards." });
     }
 });
 
 
-// --- UNIFIED ROOM ARCHITECTURE ---
+// --- UNIFIED ROOM ARCHITECTURE & AI GENERATORS ---
 const activeRooms = {};
 const BOSS_MAX_HP = 5000;
-let waitingPlayer = null; // FIXED: Prevented server crash
+let waitingPlayer = null; 
 
-function generateRoomCode() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase(); 
-}
+function generateRoomCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
-// FIXED: Consolidated the duplicate AI text generation functions
+// --- AI GENERATORS WITH RANDOM SEEDING ---
+// --- AI GENERATORS WITH OFFLINE FALLBACKS ---
 async function generateTypingText(difficultyLevel, lengthLevel = 2) {
     let wordCount = 50; 
     if (lengthLevel === 1) wordCount = 20;       
     else if (lengthLevel === 2) wordCount = 50;  
     else if (lengthLevel === 3) wordCount = 120; 
 
+    const seed = Math.floor(Math.random() * 100000);
     let prompt = "";
-    if (difficultyLevel === 1) prompt = `Generate a text containing exactly ${wordCount} words. USE ONLY extremely simple, 3-to-4 letter words. DO NOT use any punctuation marks whatsoever. The output MUST be 100% lowercase plain text consisting only of easy words.`;
-    else if (difficultyLevel === 2) prompt = `Write a standard ${wordCount}-word paragraph about technology or racing. Use normal sentence structure, basic punctuation (commas, periods), and standard capitalization.`;
-    else prompt = `Write a highly complex ${wordCount}-word paragraph for an advanced typing test. Include difficult vocabulary, frequent numbers, and special characters like parentheses (), quotes, semicolons, and hyphens.`;
+    
+    if (difficultyLevel === 1) prompt = `Task [${seed}]: Generate a text containing exactly ${wordCount} words. USE ONLY extremely simple, 3-to-4 letter words. DO NOT use any punctuation marks whatsoever. The output MUST be 100% lowercase plain text consisting only of easy words.`;
+    else if (difficultyLevel === 2) prompt = `Task [${seed}]: Write a standard ${wordCount}-word paragraph about technology or racing. Use normal sentence structure, basic punctuation (commas, periods), and standard capitalization.`;
+    else prompt = `Task [${seed}]: Write a highly complex ${wordCount}-word paragraph for an advanced typing test. Include difficult vocabulary, frequent numbers, and special characters like parentheses (), quotes, semicolons, and hyphens.`;
 
     try {
         const result = await model.generateContent(prompt);
         let text = result.response.text().replace(/\n/g, ' ').trim();
-        
-        if (difficultyLevel === 1) {
-            text = text.toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ');
-        }
+        if (difficultyLevel === 1) text = text.toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ');
         return text;
     } catch (error) {
-        return "fallback text because the api failed typing speed is a fundamental skill";
+        console.error("Typing AI Rate Limit Hit - Using Fallback.");
+        
+        // GRACEFUL FALLBACKS
+        const easyBackups = [
+            "the cat ran fast and the dog sat down on the rug to nap in the sun",
+            "you can win this race if you try hard and type fast with no bad keys",
+            "red car blue car one two go run far out and get the top spot now"
+        ];
+        const hardBackups = [
+            "The turbocharged engine roared to life, accelerating past 200 MPH! Drivers navigated tight apexes, drifting seamlessly through the neon-lit cyberpunk metropolis.",
+            "Navigating through the intricate circuits of the mainframe, the hacker deployed a multi-threaded payload. 'Access Granted,' the terminal flashed, securing the encrypted data.",
+            "Aerodynamic drag is critical in Formula 1 racing. Downforce must be meticulously balanced with top-end velocity to ensure optimal lap times across the circuit."
+        ];
+        
+        const backupArray = difficultyLevel === 1 ? easyBackups : hardBackups;
+        return backupArray[Math.floor(Math.random() * backupArray.length)];
+    }
+}
+
+async function generateSyntaxSnippet(language) {
+    const langStr = language || "JavaScript";
+    const seed = Math.floor(Math.random() * 100000);
+    
+    const prompt = `Task [${seed}]: Write a highly complex 6 to 8 line ${langStr} code snippet demonstrating arrays, loops, or functions. Do not include comments or markdown formatting. Output raw code only.`;
+    
+    try {
+        const result = await model.generateContent(prompt);
+        return result.response.text().replace(/```[a-z]*\n?/gi, "").replace(/```/g, "").trim();
+    } catch (error) {
+        console.error("Syntax AI Rate Limit Hit - Using Fallback.");
+        
+        // GRACEFUL FALLBACKS
+        const fallbacks = [
+`function calculateTrajectory(velocity, angle) {
+  const gravity = 9.81;
+  const rad = angle * (Math.PI / 180);
+  let distance = (Math.pow(velocity, 2) * Math.sin(2 * rad)) / gravity;
+  return parseFloat(distance.toFixed(2));
+}`,
+`const dataStream = [0x4A, 0x1F, 0x8C, 0x3B];
+let decryptedPayload = dataStream.map(byte => {
+  let shift = (byte << 2) & 0xFF;
+  return shift ^ 0xAA;
+});
+console.log(decryptedPayload);`,
+`class CyberNode {
+  constructor(ip, firewall) {
+    this.ip = ip;
+    this.firewall = firewall;
+  }
+  breach(attackPower) {
+    return attackPower > this.firewall;
+  }
+}`
+        ];
+        return fallbacks[Math.floor(Math.random() * fallbacks.length)];
     }
 }
 
@@ -204,14 +244,15 @@ async function generateTypingText(difficultyLevel, lengthLevel = 2) {
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    // FIXED: Added createRoom so users can host Racing and Raid
     socket.on('createRoom', async (data) => {
         const roomCode = generateRoomCode();
         activeRooms[roomCode] = {
             roomCode: roomCode,
             gameMode: data.gameMode || 'turboRacing',
+            language: data.language || 'JavaScript', 
             status: 'waiting',
-            players: { [socket.id]: { id: socket.id, name: data.name, progress: 0, wpm: 0 } }
+            players: { [socket.id]: { id: socket.id, name: data.name, progress: 0, wpm: 0 } },
+            rematchVoters: new Set() // Added Set to prevent duplicate clicks
         };
 
         if (data.gameMode === 'colosseumRaid') {
@@ -223,7 +264,6 @@ io.on('connection', (socket) => {
         socket.emit('roomCreated', { roomCode: roomCode, boss: activeRooms[roomCode].boss });
     });
 
-    // FIXED: Added joinRoom so friends can connect to each other
     socket.on('joinRoom', async (data) => {
         const room = activeRooms[data.roomCode];
         if (!room) return socket.emit('roomError', 'Room not found.');
@@ -235,55 +275,94 @@ io.on('connection', (socket) => {
             room.status = 'playing';
             const text = await generateTypingText(2, 2);
             io.to(data.roomCode).emit('matchStart', { players: room.players, text: text });
+            
         } else if (room.gameMode === 'colosseumRaid') {
             socket.emit('raidState', { roomCode: data.roomCode, boss: room.boss });
             socket.to(data.roomCode).emit('playerJoinedRaid', { name: data.name });
+            
+        } else if (room.gameMode === 'syntaxArena' && Object.keys(room.players).length === 2) {
+            room.status = 'playing';
+            room.corePosition = 0;
+            
+            const pIds = Object.keys(room.players);
+            room.players[pIds[0]].tugDirection = -1; // P1 pulls left
+            room.players[pIds[1]].tugDirection = 1;  // P2 pulls right
+
+            const snippet = await generateSyntaxSnippet(room.language);
+            io.to(data.roomCode).emit('syntaxMatchFound', { 
+                players: room.players, 
+                snippet: snippet,
+                selectedLanguage: room.language
+            });
         }
     });
 
-    // Handle Turbo Racing specific progress
-    socket.on('updateProgress', (data) => {
-        socket.to(data.roomCode).emit('opponentProgress', data);
+    socket.on('updateProgress', (data) => socket.to(data.roomCode).emit('opponentProgress', data));
+
+    // CRITICAL FIX: Looks up player by exact socket ID to prevent Incognito clones breaking the physics
+    socket.on('syntaxKeystroke', (data) => {
+        const room = activeRooms[data.roomCode];
+        if (room && room.status === 'playing') {
+            const player = room.players[socket.id]; 
+            if (player) room.corePosition += (player.tugDirection * 2.5); 
+        }
     });
 
-    // Handle Colosseum Raid Boss Damage
     socket.on('dealDamage', (data) => {
         const room = activeRooms[data.roomCode];
         if (room && room.boss && room.boss.hp > 0) {
             room.boss.hp = Math.max(0, room.boss.hp - data.damage);
             io.to(data.roomCode).emit('bossHit', { newHp: room.boss.hp });
+            if (room.boss.hp === 0) io.to(data.roomCode).emit('bossDefeated', { message: "The Boss has fallen!" });
+        }
+    });
 
-            if (room.boss.hp === 0) {
-                io.to(data.roomCode).emit('bossDefeated', { message: "The Boss has fallen!" });
+    // CRITICAL FIX: Safe Rematch Logic
+    socket.on('requestRematch', async (data) => {
+        const room = activeRooms[data.roomCode];
+        if (room) {
+            // Protect against a player spam-clicking the rematch button
+            if (!room.rematchVoters) room.rematchVoters = new Set();
+            if (room.rematchVoters.has(socket.id)) return;
+            room.rematchVoters.add(socket.id);
+
+            socket.to(data.roomCode).emit('rematchRequested');
+            room.rematchVotes = room.rematchVoters.size;
+            
+            if (room.rematchVotes === 2) {
+                io.to(data.roomCode).emit('rematchGenerating');
+                
+                // Clear the votes for the next round
+                room.rematchVotes = 0; 
+                room.rematchVoters.clear();
+                
+                if (room.gameMode === 'syntaxArena') {
+                    // AWAIT BEFORE setting status to playing, otherwise physics loop triggers early!
+                    const snippet = await generateSyntaxSnippet(room.language);
+                    room.corePosition = 0; 
+                    room.status = 'playing';
+                    
+                    // Sending the players array prevents the silent crash!
+                    io.to(data.roomCode).emit('rejoinSuccess', { 
+                        players: room.players, 
+                        snippet: snippet, 
+                        selectedLanguage: room.language 
+                    });
+                } else if (room.gameMode === 'turboRacing') {
+                    const text = await generateTypingText(2, 2);
+                    room.status = 'playing';
+                    io.to(data.roomCode).emit('rejoinSuccess', { 
+                        players: room.players, 
+                        text: text 
+                    });
+                }
             }
         }
     });
 
-    // Generic matchmaking logic for randoms
-    socket.on('joinGame', async (data) => {
-        const player = { id: socket.id, name: data.name, difficulty: data.difficulty, socket: socket };
-
-        if (waitingPlayer) {
-            const p1 = waitingPlayer;
-            const p2 = player;
-            waitingPlayer = null; 
-
-            const resolvedDifficulty = Math.max(p1.difficulty, p2.difficulty);
-            const generatedText = await generateTypingText(resolvedDifficulty);
-
-            const matchData = {
-                players: [
-                    { id: p1.id, name: p1.name },
-                    { id: p2.id, name: p2.name }
-                ],
-                text: generatedText
-            };
-
-            p1.socket.emit('matchFound', matchData);
-            p2.socket.emit('matchFound', matchData);
-        } else {
-            waitingPlayer = player;
-        }
+    socket.on('leaveRoom', (data) => {
+        socket.to(data.roomCode).emit('opponentDisconnected', { name: "OPPONENT" });
+        delete activeRooms[data.roomCode];
     });
 
     socket.on('disconnect', () => {
@@ -302,7 +381,6 @@ setInterval(() => {
                 room.status = 'finished';
                 const winnerDirection = room.corePosition <= -100 ? -1 : 1;
                 const winner = Object.values(room.players).find(p => p.tugDirection === winnerDirection);
-                
                 io.to(roomCode).emit('syntaxMatchEnded', { winner: winner ? winner.name : 'Unknown' });
             }
         }
