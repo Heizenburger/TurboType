@@ -14,9 +14,9 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// AI Initialization (Correctly ordered!)
+// --- CORRECT AI INITIALIZATION ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" }); 
+const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" }); 
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'))); 
