@@ -14,8 +14,9 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// AI Initialization (Correctly ordered!)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
+const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" }); 
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'))); 
@@ -160,7 +161,6 @@ let waitingPlayer = null;
 
 function generateRoomCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
-// --- AI GENERATORS WITH RANDOM SEEDING ---
 // --- AI GENERATORS WITH OFFLINE FALLBACKS ---
 async function generateTypingText(difficultyLevel, lengthLevel = 2) {
     let wordCount = 50; 
@@ -173,7 +173,7 @@ async function generateTypingText(difficultyLevel, lengthLevel = 2) {
     
     if (difficultyLevel === 1) prompt = `Task [${seed}]: Generate a text containing exactly ${wordCount} words. USE ONLY extremely simple, 3-to-4 letter words. DO NOT use any punctuation marks whatsoever. The output MUST be 100% lowercase plain text consisting only of easy words.`;
     else if (difficultyLevel === 2) prompt = `Task [${seed}]: Write a standard ${wordCount}-word paragraph about technology or racing. Use normal sentence structure, basic punctuation (commas, periods), and standard capitalization.`;
-    else prompt = `Task [${seed}]: Write a highly complex ${wordCount}-word paragraph for an advanced typing test. Include difficult vocabulary, frequent numbers, and special characters like parentheses (), quotes, semicolons, and hyphens.`;
+    else prompt = `Task [${seed}]: Write an epic, dark-fantasy ${wordCount}-word paragraph for a boss battle. Include difficult vocabulary, hyphenated words, and dramatic punctuation like quotes and semicolons.`;
 
     try {
         const result = await model.generateContent(prompt);
@@ -183,16 +183,15 @@ async function generateTypingText(difficultyLevel, lengthLevel = 2) {
     } catch (error) {
         console.error("Typing AI Rate Limit Hit - Using Fallback.");
         
-        // GRACEFUL FALLBACKS
         const easyBackups = [
             "the cat ran fast and the dog sat down on the rug to nap in the sun",
             "you can win this race if you try hard and type fast with no bad keys",
             "red car blue car one two go run far out and get the top spot now"
         ];
         const hardBackups = [
-            "The turbocharged engine roared to life, accelerating past 200 MPH! Drivers navigated tight apexes, drifting seamlessly through the neon-lit cyberpunk metropolis.",
-            "Navigating through the intricate circuits of the mainframe, the hacker deployed a multi-threaded payload. 'Access Granted,' the terminal flashed, securing the encrypted data.",
-            "Aerodynamic drag is critical in Formula 1 racing. Downforce must be meticulously balanced with top-end velocity to ensure optimal lap times across the circuit."
+            "The ancient behemoth roared, sending shockwaves through the shattered colosseum! Knights raised their shields, bracing against the devastating hellfire.",
+            "Navigating the corrupted mainframe, the rogue AI deployed a multi-threaded payload. 'Access Denied,' the terminal flashed, locking the encrypted data.",
+            "Dark matter pulsed within the alien dreadnought. Antimatter cannons charged to maximum capacity, threatening to obliterate the fragile human resistance!"
         ];
         
         const backupArray = difficultyLevel === 1 ? easyBackups : hardBackups;
@@ -211,8 +210,6 @@ async function generateSyntaxSnippet(language) {
         return result.response.text().replace(/```[a-z]*\n?/gi, "").replace(/```/g, "").trim();
     } catch (error) {
         console.error("Syntax AI Rate Limit Hit - Using Fallback.");
-        
-        // GRACEFUL FALLBACKS
         const fallbacks = [
 `function calculateTrajectory(velocity, angle) {
   const gravity = 9.81;
@@ -252,7 +249,7 @@ io.on('connection', (socket) => {
             language: data.language || 'JavaScript', 
             status: 'waiting',
             players: { [socket.id]: { id: socket.id, name: data.name, progress: 0, wpm: 0 } },
-            rematchVoters: new Set() // Added Set to prevent duplicate clicks
+            rematchVoters: new Set()
         };
 
         if (data.gameMode === 'colosseumRaid') {
@@ -277,29 +274,24 @@ io.on('connection', (socket) => {
             io.to(data.roomCode).emit('matchStart', { players: room.players, text: text });
             
         } else if (room.gameMode === 'colosseumRaid') {
-            socket.emit('raidState', { roomCode: data.roomCode, boss: room.boss });
-            socket.to(data.roomCode).emit('playerJoinedRaid', { name: data.name });
+            socket.emit('raidState', { roomCode: data.roomCode, boss: room.boss, players: room.players });
+            socket.to(data.roomCode).emit('playerJoinedRaid', { id: socket.id, name: data.name });
             
         } else if (room.gameMode === 'syntaxArena' && Object.keys(room.players).length === 2) {
             room.status = 'playing';
             room.corePosition = 0;
             
             const pIds = Object.keys(room.players);
-            room.players[pIds[0]].tugDirection = -1; // P1 pulls left
-            room.players[pIds[1]].tugDirection = 1;  // P2 pulls right
+            room.players[pIds[0]].tugDirection = -1;
+            room.players[pIds[1]].tugDirection = 1;
 
             const snippet = await generateSyntaxSnippet(room.language);
-            io.to(data.roomCode).emit('syntaxMatchFound', { 
-                players: room.players, 
-                snippet: snippet,
-                selectedLanguage: room.language
-            });
+            io.to(data.roomCode).emit('syntaxMatchFound', { players: room.players, snippet: snippet, selectedLanguage: room.language });
         }
     });
 
     socket.on('updateProgress', (data) => socket.to(data.roomCode).emit('opponentProgress', data));
 
-    // CRITICAL FIX: Looks up player by exact socket ID to prevent Incognito clones breaking the physics
     socket.on('syntaxKeystroke', (data) => {
         const room = activeRooms[data.roomCode];
         if (room && room.status === 'playing') {
@@ -308,20 +300,23 @@ io.on('connection', (socket) => {
         }
     });
 
+    // RAID SYNC LOGIC
+    socket.on('raidAttack', (data) => { socket.to(data.roomCode).emit('raidAttackUpdate', { id: socket.id }); });
+    socket.on('raidHazardHit', (data) => { socket.to(data.roomCode).emit('raidHazardUpdate', { id: socket.id }); });
+
     socket.on('dealDamage', (data) => {
         const room = activeRooms[data.roomCode];
         if (room && room.boss && room.boss.hp > 0) {
-            room.boss.hp = Math.max(0, room.boss.hp - data.damage);
+            // Apply damage (or heal if damage is negative), cap at MAX_HP
+            room.boss.hp = Math.min(room.boss.maxHp, Math.max(0, room.boss.hp - data.damage));
             io.to(data.roomCode).emit('bossHit', { newHp: room.boss.hp });
             if (room.boss.hp === 0) io.to(data.roomCode).emit('bossDefeated', { message: "The Boss has fallen!" });
         }
     });
 
-    // CRITICAL FIX: Safe Rematch Logic
     socket.on('requestRematch', async (data) => {
         const room = activeRooms[data.roomCode];
         if (room) {
-            // Protect against a player spam-clicking the rematch button
             if (!room.rematchVoters) room.rematchVoters = new Set();
             if (room.rematchVoters.has(socket.id)) return;
             room.rematchVoters.add(socket.id);
@@ -331,52 +326,45 @@ io.on('connection', (socket) => {
             
             if (room.rematchVotes === 2) {
                 io.to(data.roomCode).emit('rematchGenerating');
-                
-                // Clear the votes for the next round
                 room.rematchVotes = 0; 
                 room.rematchVoters.clear();
                 
                 if (room.gameMode === 'syntaxArena') {
-                    // AWAIT BEFORE setting status to playing, otherwise physics loop triggers early!
                     const snippet = await generateSyntaxSnippet(room.language);
-                    room.corePosition = 0; 
-                    room.status = 'playing';
-                    
-                    // Sending the players array prevents the silent crash!
-                    io.to(data.roomCode).emit('rejoinSuccess', { 
-                        players: room.players, 
-                        snippet: snippet, 
-                        selectedLanguage: room.language 
-                    });
+                    room.corePosition = 0; room.status = 'playing';
+                    io.to(data.roomCode).emit('rejoinSuccess', { players: room.players, snippet: snippet, selectedLanguage: room.language });
                 } else if (room.gameMode === 'turboRacing') {
                     const text = await generateTypingText(2, 2);
                     room.status = 'playing';
-                    io.to(data.roomCode).emit('rejoinSuccess', { 
-                        players: room.players, 
-                        text: text 
-                    });
+                    io.to(data.roomCode).emit('rejoinSuccess', { players: room.players, text: text });
                 }
             }
         }
     });
 
     socket.on('leaveRoom', (data) => {
-        socket.to(data.roomCode).emit('opponentDisconnected', { name: "OPPONENT" });
-        delete activeRooms[data.roomCode];
+        socket.to(data.roomCode).emit('opponentDisconnected', { id: socket.id, name: data.name || "OPPONENT" });
+        const room = activeRooms[data.roomCode];
+        if(room && room.players) delete room.players[socket.id];
     });
 
     socket.on('disconnect', () => {
         if (waitingPlayer && waitingPlayer.id === socket.id) waitingPlayer = null;
+        for (const code in activeRooms) {
+            const room = activeRooms[code];
+            if (room.players && room.players[socket.id]) {
+                 io.to(code).emit('opponentDisconnected', { id: socket.id, name: room.players[socket.id].name });
+                 delete room.players[socket.id];
+            }
+        }
     });
 });
 
-// SYNTAX ARENA PHYSICS LOOP (30 FPS)
 setInterval(() => {
     for (const roomCode in activeRooms) {
         const room = activeRooms[roomCode];
         if (room.gameMode === 'syntaxArena' && room.status === 'playing') {
             io.to(roomCode).emit('syntaxCoreUpdate', { corePosition: room.corePosition });
-            
             if (room.corePosition <= -100 || room.corePosition >= 100) {
                 room.status = 'finished';
                 const winnerDirection = room.corePosition <= -100 ? -1 : 1;
