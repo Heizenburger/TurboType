@@ -9,29 +9,130 @@
         if (!localStorage.getItem('token')) window.location.href = 'index.html?redirect=' + encodeURIComponent(window.location.href);
     </script>
     <style>
-        .room-box { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; flex: 1;}
-        .action-btn { width: 100%; padding: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; border: none; transition: 0.2s;}
-        .action-btn:hover { filter: brightness(1.2); transform: translateY(-2px); }
-        .create-btn { background: var(--primary-neon); color: white; } /* FIXED VARIABLE */
-        .join-btn { background: #10b981; color: white; }
-        .rules-box { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 15px; border-radius: 8px; text-align: left; }
-        .rules-box li { color: #cbd5e1; margin-bottom: 8px; line-height: 1.5; font-size: 0.9rem; }
+        :root {
+            --racing-yellow: #facc15;
+            --racing-orange: #f59e0b;
+        }
+
+        /* --- ERADICATE THE BLUE BACKGROUND --- */
+        body {
+            background: #050505 !important;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* --- HYPER-SPEED BACKGROUND --- */
+        .speed-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, #1f180d 0%, #050505 100%) !important;
+            z-index: -1; overflow: hidden;
+        }
+        .speed-line {
+            position: absolute;
+            height: 2px;
+            width: 250px;
+            opacity: 0;
+            animation: speedFly linear infinite;
+        }
+        @keyframes speedFly {
+            0% { transform: translateX(-300px); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateX(110vw); opacity: 0; }
+        }
+
+        /* Override the blue Parallax Track from racing_theme.css */
+        #race-track {
+            background: linear-gradient(to bottom, #2a1200 0%, #050505 100%) !important;
+            border-bottom: 4px solid var(--racing-orange) !important;
+        }
+        .layer-road {
+            background: linear-gradient(to bottom, transparent 80%, #1a150b 80%, #050505 100%) !important;
+        }
+
+        /* --- GLASSMORPHIC PANELS --- */
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(250, 204, 21, 0.15);
+        }
+
+        .room-box { background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; flex: 1; border: 1px solid rgba(255,255,255,0.05); }
         
+        /* --- UPGRADED BUTTONS --- */
+        .action-btn { width: 100%; padding: 14px; font-family: monospace; font-size: 1.1rem; letter-spacing: 1px; font-weight: bold; border-radius: 8px; cursor: pointer; border: none; transition: 0.2s;}
+        .action-btn:hover { transform: translateY(-2px); }
+        
+        .create-btn { background: var(--racing-orange); color: white; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); } 
+        .create-btn:hover { background: #ea580c; box-shadow: 0 6px 20px rgba(234, 88, 12, 0.5); }
+        
+        .join-btn { background: transparent; border: 2px solid var(--racing-yellow); color: var(--racing-yellow); }
+        .join-btn:hover { background: var(--racing-yellow); color: #000; box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4); }
+
+        /* --- RULES BOX --- */
+        .rules-box { background: rgba(250, 204, 21, 0.05); border: 1px solid rgba(250, 204, 21, 0.3); padding: 15px; border-radius: 8px; text-align: left; }
+        .rules-box li { color: #cbd5e1; margin-bottom: 8px; line-height: 1.5; font-size: 0.95rem; }
+        
+        /* --- LEADERBOARD --- */
         .lb-table { width: 100%; color: white; text-align: left; border-collapse: collapse; font-size: 0.95rem; }
-        .lb-table th { padding: 12px 8px; border-bottom: 2px solid var(--primary-neon); color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; }
+        .lb-table th { padding: 12px 8px; border-bottom: 2px solid var(--racing-yellow); color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; }
         
+        /* --- SLEEK SELECT INPUT --- */
+        .diff-select {
+            background: rgba(0,0,0,0.8) !important;
+            border: 1px solid #475569 !important;
+            color: white !important;
+            padding: 12px !important;
+            border-radius: 8px !important;
+            font-family: monospace !important;
+            font-size: 1rem !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            transition: 0.3s !important;
+            outline: none !important;
+        }
+        .diff-select:focus {
+            border-color: var(--racing-yellow) !important;
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.5) !important;
+        }
+        .diff-select option { background: #050505; color: white; }
+
+        /* --- GLOWING TITLE --- */
+        .arcade-title-glow {
+            color: var(--racing-yellow) !important;
+            text-shadow: 0 0 20px rgba(250, 204, 21, 0.6) !important;
+        }
+
         .copy-toast {
             position: fixed; top: -50px; left: 50%; transform: translateX(-50%);
-            background: #10b981; color: white; padding: 10px 25px; border-radius: 30px;
+            background: var(--racing-yellow); color: #000; padding: 10px 25px; border-radius: 30px;
             font-weight: bold; z-index: 2000; opacity: 0; pointer-events: none;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);
         }
         .copy-toast.show { top: 30px; opacity: 1; }
+
+        .back-btn {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(250, 204, 21, 0.1); border: 2px solid var(--racing-yellow); color: var(--racing-yellow);
+            padding: 8px 15px; border-radius: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer;
+            font-family: monospace; font-weight: bold; font-size: 1rem; transition: 0.2s; z-index: 100;
+        }
+        .back-btn:hover { background: var(--racing-yellow); color: #000; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(250, 204, 21, 0.4); }
     </style>
   </head>
   <body>
     
+    <div class="speed-bg">
+        <div class="speed-line" style="top: 15%; animation-duration: 0.8s; animation-delay: 0s; background: linear-gradient(90deg, transparent, var(--racing-yellow), transparent);"></div>
+        <div class="speed-line" style="top: 30%; animation-duration: 1.2s; animation-delay: 0.3s; background: linear-gradient(90deg, transparent, var(--racing-orange), transparent);"></div>
+        <div class="speed-line" style="top: 45%; animation-duration: 0.6s; animation-delay: 0.1s; background: linear-gradient(90deg, transparent, var(--racing-yellow), transparent); width: 400px;"></div>
+        <div class="speed-line" style="top: 60%; animation-duration: 1.5s; animation-delay: 0.6s; background: linear-gradient(90deg, transparent, #ef4444, transparent);"></div>
+        <div class="speed-line" style="top: 75%; animation-duration: 0.9s; animation-delay: 0.2s; background: linear-gradient(90deg, transparent, var(--racing-orange), transparent);"></div>
+        <div class="speed-line" style="top: 85%; animation-duration: 1.1s; animation-delay: 0.5s; background: linear-gradient(90deg, transparent, var(--racing-yellow), transparent); width: 150px;"></div>
+    </div>
+
     <div id="copy-toast" class="copy-toast">Copied!</div>
 
     <div id="leave-modal" class="custom-modal">
@@ -44,29 +145,35 @@
     </div>
 
     <div id="end-screen" class="custom-modal">
-        <div class="modal-box" style="border-color: #f59e0b;">
-            <h1 id="result-banner" style="color: #f59e0b; margin-top: 0; font-size: 2.5rem;">🏆 VICTORY!</h1>
+        <div class="modal-box" style="border-color: var(--racing-orange);">
+            <h1 id="result-banner" style="color: var(--racing-yellow); margin-top: 0; font-size: 2.5rem; text-shadow: 0 0 15px rgba(250, 204, 21, 0.4);">🏆 VICTORY!</h1>
             <div id="stats" style="font-size: 1.2rem; color: #cbd5e1; margin-bottom: 20px;">
-                <p>SPEED: <span id="final-wpm" style="color: #10b981; font-weight: bold;">--</span> WPM</p>
-                <p>ACCURACY: <span id="final-acc" style="color: #10b981; font-weight: bold;">--</span>%</p>
-                <p>BURST: <span id="final-burst" style="color: #3b82f6; font-weight: bold;">--</span> WPM</p>
+                <p>SPEED: <span id="final-wpm" style="color: var(--racing-yellow); font-weight: bold;">--</span> WPM</p>
+                <p>ACCURACY: <span id="final-acc" style="color: var(--racing-yellow); font-weight: bold;">--</span>%</p>
+                <p>BURST: <span id="final-burst" style="color: var(--racing-orange); font-weight: bold;">--</span> WPM</p>
             </div>
             <p id="save-status" style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px;">Saving Data...</p>
             <div style="display: flex; gap: 10px; justify-content: center;">
                 <button class="modal-btn btn-safe" onclick="window.location.href='hub.html'">BACK TO HUB</button>
-                <button class="modal-btn" style="background: #10b981; color: white;" onclick="requestRematch()">REMATCH</button>
+                <button class="modal-btn" style="background: var(--racing-orange); color: white;" onclick="requestRematch()">REMATCH</button>
             </div>
         </div>
     </div>
 
-    <div id="ui-container" style="max-width: 1100px; width: 95%;">
+    <div id="ui-container" style="max-width: 1100px; width: 95%; z-index: 10; position: relative; margin-top: 80px;">
       <div id="lobby">
-        <h1 class="arcade-title" style="text-align: center; margin-bottom: 30px; font-weight: 900; letter-spacing: 4px; font-size: 2.5rem;">TURBO RACING</h1>
+        
+        <button class="back-btn" onclick="window.location.href='hub.html'" title="Return to Hub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            HUB
+        </button>
+
+        <h1 class="arcade-title arcade-title-glow" style="text-align: center; margin-bottom: 30px; font-weight: 900; letter-spacing: 4px; font-size: 3rem;">TURBO RACING</h1>
         
         <div style="display: flex; gap: 30px; flex-wrap: wrap;">
             
-            <div style="flex: 1.2; min-width: 350px; background: rgba(0,0,0,0.3); padding: 25px; border-radius: 12px; border: 1px solid #334155; display: flex; flex-direction: column;">
-                <h3 style="margin-top:0; color: #f59e0b; letter-spacing: 2px;">GLOBAL LEADERBOARD</h3>
+            <div class="glass-panel" style="flex: 1.2; min-width: 350px; padding: 25px; border-radius: 12px; display: flex; flex-direction: column;">
+                <h3 style="margin-top:0; color: var(--racing-orange); letter-spacing: 2px;">GLOBAL LEADERBOARD</h3>
                 <div style="overflow-y: auto; flex: 1; max-height: 400px; padding-right: 10px;">
                     <table class="lb-table">
                         <thead>
@@ -86,16 +193,17 @@
             
             <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 20px;">
                 
-                <div class="rules-box" style="margin: 0;">
-                    <h3 style="margin-top:0; color: var(--primary-neon); letter-spacing: 1px;">🏎️ RACE RULES</h3> <ul style="margin: 0; padding-left: 20px;">
+                <div class="rules-box glass-panel" style="margin: 0;">
+                    <h3 style="margin-top:0; color: var(--racing-yellow); letter-spacing: 1px; text-shadow: 0 0 10px rgba(250,204,21,0.4);">🏎️ RACE RULES</h3> 
+                    <ul style="margin: 0; padding-left: 20px;">
                         <li>Type correctly to accelerate. Mistakes stall your engine.</li>
-                        <li><strong>NITRO STREAK:</strong> Type 5 words perfectly to ignite boosters!</li>
-                        <li><strong>TRACK HAZARDS:</strong> Yellow words grant speed bursts if typed perfectly, but trigger a 1-second WPM penalty and spin you out if you make a typo!</li>
+                        <li><strong style="color: var(--racing-orange);">NITRO STREAK:</strong> Type 5 words perfectly to ignite boosters!</li>
+                        <li><strong style="color: var(--racing-yellow);">TRACK HAZARDS:</strong> Yellow words grant speed bursts if typed perfectly, but trigger a 1-second WPM penalty and spin you out if you make a typo!</li>
                     </ul>
                 </div>
                 
-                <div class="room-box" style="margin: 0;">
-                    <h3 style="margin-top:0; font-size: 1rem; color: #94a3b8;">RACE LENGTH</h3>
+                <div class="room-box glass-panel" style="margin: 0;">
+                    <h3 style="margin-top:0; font-size: 1rem; color: #cbd5e1;">RACE LENGTH</h3>
                     <select id="race-length" class="diff-select" style="margin-top: 5px;">
                         <option value="1">Short (20 Words)</option>
                         <option value="2" selected>Medium (50 Words)</option>
@@ -104,13 +212,13 @@
                 </div>
 
                 <div style="display: flex; gap: 15px;">
-                    <div class="room-box" style="margin: 0;">
-                        <h3 style="margin-top:0; font-size: 1rem; color: #94a3b8;">HOST</h3>
+                    <div class="room-box glass-panel" style="margin: 0;">
+                        <h3 style="margin-top:0; font-size: 1rem; color: #cbd5e1;">HOST</h3>
                         <button class="action-btn create-btn" style="margin-top: 5px;" onclick="hostRoom()">CREATE ROOM</button>
                     </div>
-                    <div class="room-box" style="margin: 0;">
-                        <h3 style="margin-top:0; font-size: 1rem; color: #94a3b8;">JOIN</h3>
-                        <input type="text" id="room-code-input" class="diff-select" placeholder="6-DIGIT CODE" style="margin-top: 5px; text-transform: uppercase;">
+                    <div class="room-box glass-panel" style="margin: 0;">
+                        <h3 style="margin-top:0; font-size: 1rem; color: #cbd5e1;">JOIN</h3>
+                        <input type="text" id="room-code-input" class="diff-select" placeholder="6-DIGIT CODE" style="margin-top: 5px; text-transform: uppercase; text-align: center;">
                         <button class="action-btn join-btn" style="margin-top: 10px;" onclick="joinExistingRoom()">JOIN ROOM</button>
                     </div>
                 </div>
@@ -120,27 +228,34 @@
         </div>
       </div>
 
-      <div id="waiting-screen" style="display: none; text-align: center;">
-          <h2 style="color: var(--primary-neon);">ROOM CREATED</h2> <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">
-              <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; flex: 1;">
-                  <p style="color: #64748b; font-weight: bold; margin: 0 0 10px 0;">ROOM CODE</p>
+      <div id="waiting-screen" style="display: none; text-align: center;" class="glass-panel">
+          <button class="back-btn" onclick="window.location.href='hub.html'" title="Return to Hub">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              HUB
+          </button>
+
+          <h2 class="arcade-title-glow" style="margin-top: 20px;">ROOM CREATED</h2> 
+          <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px; padding: 20px;">
+              <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; flex: 1; border: 1px solid rgba(255,255,255,0.1);">
+                  <p style="color: #94a3b8; font-weight: bold; margin: 0 0 10px 0;">ROOM CODE</p>
                   <div style="display: flex; gap: 5px;">
-                      <input type="text" id="display-room-code" readonly style="flex: 1; text-align: center; letter-spacing: 3px; font-size: 1.5rem; background: rgba(0,0,0,0.05); border: 2px dashed #cbd5e1; border-radius: 8px; color: var(--primary-neon); outline: none;"> <button onclick="copyData('display-room-code')" class="action-btn create-btn" style="width: auto; margin: 0;">COPY</button>
+                      <input type="text" id="display-room-code" readonly style="flex: 1; text-align: center; letter-spacing: 3px; font-size: 1.5rem; background: rgba(0,0,0,0.5); border: 2px dashed var(--racing-yellow); border-radius: 8px; color: var(--racing-yellow); outline: none;"> 
+                      <button onclick="copyData('display-room-code')" class="action-btn create-btn" style="width: auto; margin: 0;">COPY</button>
                   </div>
               </div>
-              <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; flex: 1;">
-                  <p style="color: #64748b; font-weight: bold; margin: 0 0 10px 0;">INVITE LINK</p>
+              <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; flex: 1; border: 1px solid rgba(255,255,255,0.1);">
+                  <p style="color: #94a3b8; font-weight: bold; margin: 0 0 10px 0;">INVITE LINK</p>
                   <div style="display: flex; gap: 5px;">
-                      <input type="text" id="display-room-link" readonly style="flex: 1; text-align: center; font-size: 0.9rem; background: rgba(0,0,0,0.05); border: 1px solid #cbd5e1; border-radius: 8px; color: #fff; outline: none;">
+                      <input type="text" id="display-room-link" readonly style="flex: 1; text-align: center; font-size: 0.9rem; background: rgba(0,0,0,0.5); border: 1px solid #64748b; border-radius: 8px; color: #fff; outline: none;">
                       <button onclick="copyData('display-room-link')" class="action-btn join-btn" style="width: auto; margin: 0;">COPY</button>
                   </div>
               </div>
           </div>
-          <p style="color: #64748b; font-weight: bold; margin-top: 20px;">Waiting for challenger to connect...</p>
+          <p style="color: #cbd5e1; font-weight: bold; margin-bottom: 30px;">Waiting for challenger to connect...</p>
       </div>
     </div>
 
-    <div id="game-ui" style="display: none; flex-direction: column; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0;">
+    <div id="game-ui" style="display: none; flex-direction: column; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; background: #050505; z-index: 200;">
         
         <header class="race-header">
             <div class="brand-logo">TURBO</div>

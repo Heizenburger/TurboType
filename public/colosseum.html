@@ -11,23 +11,172 @@
         }
     </script>
     <link rel="stylesheet" href="colosseum_theme.css" />
+    <style>
+        :root {
+            --raid-red: #e11d48;
+            --raid-light: #fb7185;
+            --raid-dark: #9f1239;
+        }
+
+        /* --- ERADICATE THE GLOBAL UI-CONTAINER OVERLAY --- */
+        body {
+            background: #050505 !important;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        #ui-container {
+            background: transparent !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        /* --- CLEAN AMBER BACKGROUND (Simplified Boss Raid Theme) --- */
+        .ember-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, #1a050a 0%, #050505 100%) !important;
+            z-index: -1; overflow: hidden;
+        }
+        
+        /* Removed .fire-pit, .flame-tongue, and ::after magma glow */
+
+        /* Erratic Hot Sparks (Retained as requested) */
+        .ember {
+            position: absolute;
+            bottom: -20px;
+            background: #fff; /* White-hot core */
+            border-radius: 50%;
+            box-shadow: 0 0 10px #facc15, 0 0 20px var(--raid-red), 0 0 40px var(--raid-red);
+            animation: flyEmber linear infinite;
+        }
+        @keyframes flyEmber {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(calc(20vw * var(--dir)), -120vh) scale(0); opacity: 0; }
+        }
+
+        /* --- GLASSMORPHIC PANELS --- */
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(225, 29, 72, 0.15);
+        }
+
+        .room-box { background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; flex: 1; border: 1px solid rgba(255,255,255,0.05); }
+        
+        /* --- UPGRADED BUTTONS --- */
+        .action-btn { width: 100%; padding: 14px; font-family: monospace; font-size: 1.1rem; letter-spacing: 1px; font-weight: bold; border-radius: 8px; cursor: pointer; border: none; transition: 0.2s;}
+        .action-btn:hover { transform: translateY(-2px); }
+        
+        .create-btn { background: var(--raid-red); color: white; box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3); } 
+        .create-btn:hover { background: var(--raid-light); box-shadow: 0 6px 20px rgba(251, 113, 133, 0.5); }
+        
+        .join-btn { background: transparent; border: 2px solid var(--raid-red); color: var(--raid-red); }
+        .join-btn:hover { background: var(--raid-red); color: white; box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4); }
+
+        /* --- RULES BOX --- */
+        .rules-box { background: rgba(225, 29, 72, 0.05); border: 1px solid rgba(225, 29, 72, 0.3); padding: 15px; border-radius: 8px; text-align: left; }
+        .rules-box li { color: #cbd5e1; margin-bottom: 8px; line-height: 1.5; font-size: 0.95rem; }
+        
+        /* --- LEADERBOARD --- */
+        .lb-table { width: 100%; color: white; text-align: left; border-collapse: collapse; font-size: 0.95rem; }
+        .lb-table th { padding: 12px 8px; border-bottom: 2px solid var(--raid-red); color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; }
+        
+        /* --- SLEEK SELECT INPUT --- */
+        .diff-select {
+            background: rgba(0,0,0,0.8) !important;
+            border: 1px solid #475569 !important;
+            color: white !important;
+            padding: 12px !important;
+            border-radius: 8px !important;
+            font-family: monospace !important;
+            font-size: 1rem !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            transition: 0.3s !important;
+            outline: none !important;
+        }
+        .diff-select:focus {
+            border-color: var(--raid-red) !important;
+            box-shadow: 0 0 15px rgba(225, 29, 72, 0.5) !important;
+        }
+
+        /* --- GLOWING TITLE --- */
+        .arcade-title-glow {
+            color: var(--raid-red) !important;
+            text-shadow: 0 0 20px rgba(225, 29, 72, 0.6) !important;
+        }
+
+        .copy-toast {
+            position: fixed; top: -50px; left: 50%; transform: translateX(-50%);
+            background: var(--raid-red); color: white; padding: 10px 25px; border-radius: 30px;
+            font-weight: bold; z-index: 2000; opacity: 0; pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4);
+        }
+        .copy-toast.show { top: 30px; opacity: 1; }
+
+        .back-btn {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(225, 29, 72, 0.1); border: 2px solid var(--raid-red); color: var(--raid-red);
+            padding: 8px 15px; border-radius: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer;
+            font-family: monospace; font-weight: bold; font-size: 1rem; transition: 0.2s; z-index: 100; text-decoration: none;
+        }
+        .back-btn:hover { background: var(--raid-red); color: white; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(225, 29, 72, 0.4); }
+
+        /* --- STYLED GAME EXIT BUTTON --- */
+        #exit-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(225, 29, 72, 0.1);
+            border: 2px solid var(--raid-red);
+            color: var(--raid-red);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            z-index: 100;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+        #exit-btn:hover {
+            background: var(--raid-red);
+            color: white;
+            box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4);
+        }
+    </style>
   </head>
   <body>
     
-    <!-- Top-Center Copy Toast -->
+    <div class="ember-bg">
+        <div class="ember" style="left: 20%; width: 6px; height: 6px; animation-duration: 2.5s; animation-delay: 0s; --dir: 1;"></div>
+        <div class="ember" style="left: 50%; width: 9px; height: 9px; animation-duration: 3.2s; animation-delay: 0.5s; --dir: -1.5;"></div>
+        <div class="ember" style="left: 80%; width: 5px; height: 5px; animation-duration: 2.1s; animation-delay: 1.2s; --dir: 2;"></div>
+        <div class="ember" style="left: 35%; width: 10px; height: 10px; animation-duration: 4s; animation-delay: 2s; --dir: -1;"></div>
+        <div class="ember" style="left: 65%; width: 7px; height: 7px; animation-duration: 3s; animation-delay: 0.8s; --dir: 1.2;"></div>
+        <div class="ember" style="left: 90%; width: 4px; height: 4px; animation-duration: 2.3s; animation-delay: 0.2s; --dir: -2;"></div>
+        <div class="ember" style="left: 10%; width: 8px; height: 8px; animation-duration: 3.5s; animation-delay: 1.5s; --dir: 0.5;"></div>
+    </div>
+
     <div id="copy-toast" class="copy-toast">Copied!</div>
 
-    <button id="exit-btn" onclick="surrenderMatch()">EXIT RAID</button>
-
-    <div id="ui-container" style="max-width: 1100px; width: 95%;">
+    <div id="ui-container" style="max-width: 1100px; width: 95%; z-index: 10; position: relative; margin-top: 80px;">
       <div id="lobby">
-        <h1 class="arcade-title" style="text-align: center; margin-bottom: 30px; font-weight: 900; letter-spacing: 4px; font-size: 2.5rem;">COLOSSEUM RAID</h1>
+        
+        <button class="back-btn" onclick="window.location.href='hub.html'" title="Return to Hub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            HUB
+        </button>
+
+        <h1 class="arcade-title arcade-title-glow" style="text-align: center; margin-bottom: 30px; font-weight: 900; letter-spacing: 4px; font-size: 3rem;">COLOSSEUM RAID</h1>
         
         <div style="display: flex; gap: 30px; flex-wrap: wrap;">
             
-            <!-- LEFT: Global Leaderboard -->
-            <div style="flex: 1.2; min-width: 350px; background: rgba(0,0,0,0.3); padding: 25px; border-radius: 12px; border: 1px solid #555; display: flex; flex-direction: column;">
-                <h3 style="margin-top:0; color: #e11d48; letter-spacing: 2px;">GLOBAL LEADERBOARD</h3>
+            <div class="glass-panel" style="flex: 1.2; min-width: 350px; padding: 25px; border-radius: 12px; display: flex; flex-direction: column;">
+                <h3 style="margin-top:0; color: var(--raid-light); letter-spacing: 2px;">GLOBAL LEADERBOARD</h3>
                 <div style="overflow-y: auto; flex: 1; max-height: 400px; padding-right: 10px;">
                     <table class="lb-table">
                         <thead>
@@ -45,27 +194,26 @@
                 </div>
             </div>
             
-            <!-- RIGHT: Rules & Settings -->
             <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 20px;">
                 
-                <div class="rules-box" style="margin: 0;">
-                    <h3 style="margin-top:0; color: #e11d48; letter-spacing: 1px;">⚔️ BATTLE INSTRUCTIONS</h3>
+                <div class="rules-box glass-panel" style="margin: 0;">
+                    <h3 style="margin-top:0; color: var(--raid-red); letter-spacing: 1px; text-shadow: 0 0 10px rgba(225, 29, 72, 0.4);">⚔️ BATTLE INSTRUCTIONS</h3>
                     <ul style="margin: 0; padding-left: 20px;">
                         <li><strong>Co-op Gameplay:</strong> All players in the room share the same Boss instance and HP bar.</li>
-                        <li>Type the epic lore to launch attacks. <strong>Longer words deal more damage!</strong></li>
+                        <li>Type the epic lore to launch attacks. <strong style="color: var(--raid-light);">Longer words deal more damage!</strong></li>
                         <li>The Boss has 5,000 HP. You must work together to bring it down before fatigue sets in.</li>
                         <li>Your progress is saved on the server. Rejoin within 60 seconds to resume the fight.</li>
                     </ul>
                 </div>
 
                 <div style="display: flex; gap: 15px;">
-                    <div class="room-box" style="margin: 0;">
-                        <h3 style="margin-top:0; font-size: 1rem; color: #fca5a5;">HOST</h3>
+                    <div class="room-box glass-panel" style="margin: 0;">
+                        <h3 style="margin-top:0; font-size: 1rem; color: #cbd5e1;">HOST</h3>
                         <button class="action-btn create-btn" style="margin-top: 5px;" onclick="hostRoom()">CREATE PRIVATE RAID</button>
                     </div>
-                    <div class="room-box" style="margin: 0;">
-                        <h3 style="margin-top:0; font-size: 1rem; color: #fca5a5;">JOIN</h3>
-                        <input type="text" id="room-code-input" class="diff-select" placeholder="6-DIGIT CODE" style="margin-top: 5px; text-transform: uppercase;">
+                    <div class="room-box glass-panel" style="margin: 0;">
+                        <h3 style="margin-top:0; font-size: 1rem; color: #cbd5e1;">JOIN</h3>
+                        <input type="text" id="room-code-input" class="diff-select" placeholder="6-DIGIT CODE" style="margin-top: 5px; text-transform: uppercase; text-align: center;">
                         <button class="action-btn join-btn" style="margin-top: 10px;" onclick="joinExistingRoom()">JOIN BATTLE</button>
                     </div>
                 </div>
@@ -75,13 +223,15 @@
         </div>
       </div>
 
-      <div id="game-ui" style="display: none">
-        <h1 class="arcade-title" style="margin-bottom: 5px;">COLOSSEUM RAID</h1>
+      <div id="game-ui" style="display: none; position: relative;">
+        <button id="exit-btn" onclick="surrenderMatch()">ABORT RAID</button>
+
+        <h1 class="arcade-title arcade-title-glow" style="margin-bottom: 5px; font-size: 2.5rem; text-align: center;">COLOSSEUM RAID</h1>
         
         <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
-            <input type="text" id="display-room-code" readonly style="width: 150px; text-align: center; font-size: 1.2rem; font-weight: bold; background: rgba(0,0,0,0.2); border: 2px solid #e11d48; border-radius: 8px; color: #e11d48; outline: none;">
+            <input type="text" id="display-room-code" readonly style="width: 150px; text-align: center; font-size: 1.2rem; font-weight: bold; background: rgba(0,0,0,0.6); border: 2px solid var(--raid-red); border-radius: 8px; color: var(--raid-red); outline: none;">
             <button onclick="copyData('display-room-code')" class="action-btn create-btn" style="width: auto; margin: 0; padding: 10px;">COPY CODE</button>
-            <input type="text" id="display-room-link" readonly style="width: 200px; text-align: center; font-size: 0.9rem; background: rgba(0,0,0,0.2); border: 1px solid #fb7185; border-radius: 8px; color: white; outline: none;">
+            <input type="text" id="display-room-link" readonly style="width: 200px; text-align: center; font-size: 0.9rem; background: rgba(0,0,0,0.6); border: 1px solid #fb7185; border-radius: 8px; color: white; outline: none;">
             <button onclick="copyData('display-room-link')" class="action-btn join-btn" style="width: auto; margin: 0; padding: 10px;">COPY LINK</button>
         </div>
 
