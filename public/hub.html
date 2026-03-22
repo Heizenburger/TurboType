@@ -11,13 +11,13 @@
     <style>
         /* Hub Specific Centering & Grid Fixes */
         #ui-container {
-            margin-top: 15vh !important; /* Pushes everything down to the center */
-            max-width: 800px; /* Keeps the grid tight and readable */
+            margin-top: 15vh !important; 
+            max-width: 800px; 
         }
         
         .menu {
             display: grid !important; 
-            grid-template-columns: repeat(2, 1fr) !important; /* Forces a perfect 2x2 Grid */
+            grid-template-columns: repeat(2, 1fr) !important; 
             gap: 25px !important;
             margin-top: 30px !important;
         }
@@ -30,12 +30,100 @@
             height: 100%; 
             box-sizing: border-box;
         }
+
+        /* --- NEW FLOATING AVATAR DROPDOWN --- */
+        .profile-dropdown {
+            position: fixed;
+            top: 30px;
+            right: 40px;
+            z-index: 1000;
+        }
+
+        .profile-avatar {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            border: 3px solid var(--primary-neon, #3b82f6);
+            background: rgba(255,255,255,0.05);
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .profile-dropdown:hover .profile-avatar {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.6);
+        }
+
+        .dropdown-content {
+            position: absolute;
+            top: 70px;
+            right: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 12px;
+            min-width: 160px;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-15px);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        .profile-dropdown:hover .dropdown-content {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-header {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: #a5b4fc;
+            font-weight: bold;
+            font-size: 0.95rem;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .dropdown-item {
+            padding: 12px 15px;
+            color: white;
+            text-decoration: none;
+            background: none;
+            border: none;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--primary-neon, #3b82f6);
+        }
+
+        .dropdown-item.logout-text:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-neon, #ef4444);
+        }
         
         /* Responsive fallback for mobile devices */
         @media (max-width: 600px) {
             .menu { grid-template-columns: 1fr !important; }
             #ui-container { margin-top: 100px !important; }
+            .profile-dropdown { top: 15px; right: 15px; }
         }
+
+        /* Hide original header entirely if inherited from style.css */
+        #user-header { display: none !important; }
     </style>
 </head>
 <body>
@@ -53,15 +141,12 @@
         <div class="key-wrapper" style="left: 50%; animation-duration: 14s; animation-delay: 9s;"><div class="floating-key key-red">ALT</div></div>
     </div>
 
-    <div id="user-header">
-        <div></div> 
-        <div class="header-right">
-            <a href="account.html" class="header-btn" style="color: white;">Account</a>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <img id="display-avatar" src="" alt="Avatar" style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--primary-neon); background: rgba(255,255,255,0.05);">
-                <span id="display-gamertag" style="color: #a5b4fc; font-weight: bold; font-size: 1rem;"></span>
-            </div>
-            <button class="header-btn logout-btn" onclick="logout()">Disconnect</button>
+    <div class="profile-dropdown">
+        <img id="display-avatar" src="" alt="Avatar" class="profile-avatar">
+        <div class="dropdown-content">
+            <div class="dropdown-header" id="display-gamertag"></div>
+            <a href="account.html" class="dropdown-item">Account Settings</a>
+            <button onclick="logout()" class="dropdown-item logout-text">Disconnect</button>
         </div>
     </div>
 
@@ -72,7 +157,7 @@
         <div class="menu">
             <a href="samurai_game.html" class="card samurai">
                 <h2 style="color: #60a5fa;">Samurai Survival</h2>
-                <span class="tag online">SOLO CAMPAIGN</span>
+                <span class="tag online" style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid #3b82f6;">SOLO CAMPAIGN</span>
                 <p>Adaptive difficulty combat loop.</p>
             </a>
 
@@ -90,7 +175,7 @@
 
             <a href="colosseum.html" class="card raid">
                 <h2 style="color: #fb7185;">Colosseum Raid</h2>
-                <span class="tag online">PvE CO-OP</span>
+                <span class="tag online" style="background: rgba(225, 29, 72, 0.1); color: #fb7185; border: 1px solid #e11d48;">PvE CO-OP</span>
                 <p>Type Lore to Slay the Global Boss.</p>
             </a>
         </div>
