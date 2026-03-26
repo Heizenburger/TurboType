@@ -3,304 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <title>TurboType: Samurai Survival</title>
-    <style>body { margin: 0; background-color: #000; overflow: hidden; color: white; font-family: sans-serif; }</style>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="samurai_theme.css" />
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         if (!localStorage.getItem('token')) window.location.href = 'index.html';
     </script>
 </head>
 <body>
 
-<div id="loading-screen" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px;">
-    Syncing Player Data...
-</div>
+    <div id="loading-screen" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-family: monospace; color: #3b82f6;">
+        INITIALIZING COMBAT PROTOCOLS...
+    </div>
 
-<script>
-// --- GAME METRICS TRACKING ---
-let sessionStats = {
-    totalKeystrokes: 0,
-    correctKeystrokes: 0,
-    startTime: 0,
-    peakBurstWPM: 0,
-    lastWordCompleteTime: 0
-};
+    <div id="game-ui" style="display: none;">
+        <div class="stats-bar">
+            <div>WAVE: <span id="ui-wave">1</span></div>
+            <div style="margin-top: 5px;">SCORE: <span id="ui-score">0</span></div>
+            <div class="hp-bar-container">
+                <div id="ui-hp-fill" class="hp-fill"></div>
+            </div>
+        </div>
 
-// --- DYNAMIC DESIGN VARIABLES ---
-let PLAYER_MAX_HEALTH = 100;
-let ENEMY_DAMAGE = 20; 
-let currentSpawnDelay = 3000; 
-let difficultyMultiplier = 1;
-let userSkillScore = 0;
+        <button onclick="window.location.href='hub.html'" class="back-btn" title="Return to Hub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            ABORT
+        </button>
 
-// Fetch User Skill Score from Server before initializing Phaser
-async function initializeGame() {
-    try {
-        const res = await fetch('/api/account', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        if (res.ok) {
-            const user = await res.json();
-            userSkillScore = user.skillScore;
-            applyDifficultyScaling(userSkillScore);
-            document.getElementById('loading-screen').style.display = 'none';
-            game = new Phaser.Game(config); // Start game only after data is loaded
-        } else {
-            window.location.href = 'index.html';
-        }
-    } catch (err) {
-        console.error("Failed to fetch user data", err);
-    }
-}
+        <div id="wave-announcement" class="wave-announcement">WAVE 1</div>
+        <input type="text" id="target-input" autocomplete="off" spellcheck="false" />
+    </div>
 
-function applyDifficultyScaling(skill) {
-    if (skill > 800) {
-        ENEMY_DAMAGE = 34; // 3 hits to die
-        currentSpawnDelay = 1800; // Very fast spawns
-        difficultyMultiplier = 3;
-    } else if (skill > 400) {
-        ENEMY_DAMAGE = 25; // 4 hits to die
-        currentSpawnDelay = 2400; // Faster spawns
-        difficultyMultiplier = 2;
-    } else {
-        ENEMY_DAMAGE = 20; // 5 hits to die
-        currentSpawnDelay = 3200; // Normal
-        difficultyMultiplier = 1;
-    }
-}
+    <div id="end-screen" class="modal">
+        <div class="modal-box">
+            <h1 class="arcade-title" style="margin-top: 0; color: #ef4444; text-shadow: 0 0 15px rgba(239, 68, 68, 0.5);">OVERWHELMED</h1>
+            <div style="font-size: 1.2rem; color: #cbd5e1; margin-bottom: 20px; font-family: monospace;">
+                <p>WAVES CLEARED: <span id="final-wave" style="color: #60a5fa; font-weight: bold;">--</span></p>
+                <p>SCORE: <span id="final-score" style="color: #60a5fa; font-weight: bold;">--</span></p>
+                <p>SPEED: <span id="final-wpm" style="color: #10b981; font-weight: bold;">--</span> WPM</p>
+            </div>
+            <p id="save-status" style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px;">Saving Combat Logs...</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="modal-btn" style="background: #334155; color: white;" onclick="window.location.href='hub.html'">HUB</button>
+                <button class="modal-btn btn-primary" onclick="window.location.reload()">TRY AGAIN</button>
+            </div>
+        </div>
+    </div>
 
-const config = {
-    type: Phaser.AUTO, 
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 1280, height: 720 },
-    physics: { default: 'arcade' },
-    scene: { preload: preload, create: create, update: update }
-};
-
-let game; // <-- DECLARED GLOBALLY SO POPUPS WORK
-
-// --- MASSIVE DYNAMIC DICTIONARIES ---
-const wordsEasy = [
-    "RUN", "JUMP", "HIT", "DASH", "CUT", "BUG", "CODE", "DATA", "BYTE", "NEON", 
-    "WIRE", "CHIP", "NODE", "PORT", "DISK", "TECH", "WEB", "NET", "LINK", "FIRE", 
-    "ICE", "BURN", "HACK", "ROOT", "CORE", "RAM", "CPU", "BITE", "KICK", "SPIN"
-];
-const wordsMedium = [
-    "BLADE", "STRIKE", "NINJA", "TURBO", "GLITCH", "SERVER", "SCRIPT", "SYNTAX", 
-    "SYSTEM", "UPLOAD", "PACKET", "ROUTER", "HACKER", "CYBORG", "MATRIX", "PROMPT", 
-    "MEMORY", "KERNEL", "MODULE", "PYTHON", "SHADOW", "KATANA", "WEAPON", "REBOOT"
-];
-const wordsHard = [
-    "SAMURAI", "ASSASSIN", "SHURIKEN", "VENGEANCE", "MAINFRAME", "ALGORITHM", 
-    "ENCRYPTION", "BANDWIDTH", "FIREWALL", "PROTOCOL", "OVERRIDE", "DATABANK", 
-    "INTERFACE", "PROCESSOR", "TERMINAL", "INFILTRATE", "CYBERNETIC", "SYNDICATE"
-];
-
-let player, enemies, background, healthBar, currentWord = "START", userInput = "";
-let scoreText, wordText, uiScoreText;
-let score = 0, scrollSpeed = 0, isGameOver = false, currentHealth = PLAYER_MAX_HEALTH;
-let spawnTimer;
-
-function preload () {
-    this.load.image('city', 'assets/bg.png'); 
-    this.load.spritesheet('hero_idle', 'assets/player_idle.png', { frameWidth: 96, frameHeight: 96 });
-    this.load.spritesheet('hero_run', 'assets/player_run.png', { frameWidth: 96, frameHeight: 96 });
-    this.load.spritesheet('hero_attack', 'assets/player_attack.png', { frameWidth: 96, frameHeight: 96 });
-}
-
-function create () {
-    background = this.add.tileSprite(640, 360, 1280, 720, 'city');
-    this.anims.create({ key: 'idle', frames: this.anims.generateFrameNumbers('hero_idle', { start: 0, end: 9 }), frameRate: 10, repeat: -1 });
-    this.anims.create({ key: 'run', frames: this.anims.generateFrameNumbers('hero_run', { start: 0, end: 7 }), frameRate: 12, repeat: -1 });
-    this.anims.create({ key: 'attack', frames: this.anims.generateFrameNumbers('hero_attack', { start: 0, end: 5 }), frameRate: 15, repeat: 0 });
-
-    player = this.physics.add.sprite(200, 500, 'hero_idle').setScale(2.5).play('idle');
-    player.body.setSize(30, 80); 
-
-    enemies = this.physics.add.group();
-    spawnTimer = this.time.addEvent({ delay: currentSpawnDelay, callback: spawnEnemy, callbackScope: this, loop: true });
-
-    this.add.rectangle(170, 60, 300, 25, 0x555555).setOrigin(0, 0.5);
-    healthBar = this.add.rectangle(170, 60, 300, 25, 0x00ff00).setOrigin(0, 0.5);
-    this.add.text(120, 60, "HP", { fontSize: '24px', fontStyle: 'bold' }).setOrigin(0.5);
-    uiScoreText = this.add.text(30, 100, "SCORE: 0", { fontSize: '28px', fontStyle: 'bold', fill: '#fff' });
-
-    wordText = this.add.text(640, 200, currentWord, { fontSize: '60px', fill: '#fff', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5);
-    scoreText = this.add.text(640, 650, 'TYPE "START"', { fontSize: '28px', fill: '#0f0', backgroundColor: '#000', padding: {x:10, y:5} }).setOrigin(0.5);
-
-    this.input.keyboard.on('keydown', handleTyping);
-    this.physics.add.overlap(player, enemies, takeDamage, null, this);
-    
-    player.on('animationcomplete', anim => { if (anim.key === 'attack') player.play(scrollSpeed > 0 ? 'run' : 'idle'); }, this);
-}
-
-function update () {
-    if (isGameOver) return;
-    background.tilePositionX += scrollSpeed;
-
-    if (player.anims.currentAnim.key !== 'attack') {
-        if (scrollSpeed > 0.1) {
-            player.play('run', true);
-            scrollSpeed *= 0.98;
-        } else {
-            scrollSpeed = 0;
-            player.play('idle', true);
-        }
-    }
-
-    enemies.children.iterate(enemy => {
-        if (enemy && enemy.active) {
-            let dist = Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y);
-            if (dist < 280 && enemy.anims.currentAnim.key !== 'attack') enemy.play('attack');
-            else if (dist >= 280 && enemy.anims.currentAnim.key !== 'run') enemy.play('run');
-        }
-    });
-}
-
-function spawnEnemy() {
-    if (isGameOver) return;
-    let enemy = enemies.create(1350, 500, 'hero_run').setScale(2.5).setFlipX(true).setTint(0xff0000).play('run'); 
-    let randomSpeed = Phaser.Math.Between(150 + (score * 2), 250 + (score * 2));
-    enemy.setVelocityX(-randomSpeed);
-    enemy.checkWorldBounds = true;
-    enemy.outOfBoundsKill = true;
-}
-
-function handleTyping(event) {
-    if (isGameOver) {
-        if (event.keyCode === 13) window.location.href = 'hub.html';
-        return;
-    }
-
-    // Start timer on first keypress
-    if (sessionStats.startTime === 0) {
-        sessionStats.startTime = Date.now();
-        sessionStats.lastWordCompleteTime = Date.now();
-    }
-
-    if (event.keyCode >= 65 && event.keyCode <= 90) {
-        sessionStats.totalKeystrokes++;
-        userInput += event.key.toUpperCase();
-        
-        if (currentWord.startsWith(userInput)) {
-            sessionStats.correctKeystrokes++;
-            wordText.setColor('#ffffff');
-            scoreText.setText(userInput);
-            
-            if (userInput === currentWord) completeWord();
-        } else {
-            // Typo logic
-            wordText.setColor('#ff0000'); // Flash the target word Red
-            userInput = "";               // Wipe the bad input
-            scoreText.setText(userInput); // Clear the screen text
-            
-            setTimeout(() => {
-                if(wordText && wordText.active) wordText.setColor('#ffffff');
-            }, 300);
-        }
-    } else if (event.keyCode === 8) { 
-        userInput = userInput.slice(0, -1);
-        scoreText.setText(userInput);
-        wordText.setColor(currentWord.startsWith(userInput) ? '#ffffff' : '#ff0000');
-    }
-}
-
-function completeWord() {
-    // Calculate Burst Speed for this specific word
-    let now = Date.now();
-    let timeTakenMins = (now - sessionStats.lastWordCompleteTime) / 60000;
-    let wordBurstWPM = Math.round((currentWord.length / 5) / timeTakenMins);
-    
-    if (wordBurstWPM > sessionStats.peakBurstWPM && wordBurstWPM < 300) { 
-        sessionStats.peakBurstWPM = wordBurstWPM;
-    }
-    sessionStats.lastWordCompleteTime = now;
-
-    // Game Logic
-    scrollSpeed += 5;
-    userInput = "";
-    scoreText.setText(""); // <-- CLEARS THE GREEN TEXT
-    player.play('attack');
-    score += 10;
-    uiScoreText.setText("SCORE: " + score);
-    
-    let closestEnemy = null;
-    let minDist = 9999;
-    enemies.children.iterate(child => {
-        if (child.active) {
-            let dist = Phaser.Math.Distance.Between(player.x, player.y, child.x, child.y);
-            if (dist < minDist) { minDist = dist; closestEnemy = child; }
-        }
-    });
-
-    if (closestEnemy && minDist < 380) {
-        closestEnemy.destroy();
-        showFloatingText("HIT!", 0x00ff00); 
-        if (currentSpawnDelay > 800) {
-            currentSpawnDelay -= 50;
-            spawnTimer.delay = currentSpawnDelay;
-        }
-    } else {
-        showFloatingText("MISS!", 0xffa500); 
-    }
-
-    // Select next word based on dynamic difficulty multiplier
-    let wordList = wordsEasy;
-    let combinedDifficulty = score * difficultyMultiplier;
-    if (combinedDifficulty >= 100 && combinedDifficulty < 300) wordList = wordsMedium;
-    else if (combinedDifficulty >= 300) wordList = wordsHard;
-
-    currentWord = wordList[Math.floor(Math.random() * wordList.length)];
-    wordText.setText(currentWord);
-    wordText.setColor('#00ff00');
-}
-
-async function takeDamage(player, enemy) {
-    enemy.destroy();
-    currentHealth -= ENEMY_DAMAGE;
-    healthBar.width = 300 * Math.max(0, currentHealth / PLAYER_MAX_HEALTH);
-    player.setTint(0xff0000);
-    setTimeout(() => player.clearTint(), 200);
-
-    if (currentHealth <= 0 && !isGameOver) {
-        isGameOver = true;
-        this.physics.pause();
-        player.setTint(0x555555);
-        player.anims.stop(); 
-        
-        // Finalize Stats
-        let totalMinutes = (Date.now() - sessionStats.startTime) / 60000;
-        let finalWpm = Math.round((sessionStats.correctKeystrokes / 5) / totalMinutes) || 0;
-        let finalAcc = Math.round((sessionStats.correctKeystrokes / Math.max(1, sessionStats.totalKeystrokes)) * 100) || 0;
-        
-        wordText.setText(`GAME OVER\nWPM: ${finalWpm} | ACC: ${finalAcc}%\nSaving Data...`).setAlign('center');
-
-        // Send to Server
-        await fetch('/api/game/end', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-                gameMode: 'samuraiTyping',
-                wpm: finalWpm,
-                accuracy: finalAcc,
-                burstSpeed: sessionStats.peakBurstWPM,
-                score: score
-            })
-        });
-
-        wordText.setText(`GAME OVER\nWPM: ${finalWpm} | ACC: ${finalAcc}%\nPress ENTER to Return to Hub`).setAlign('center');
-    }
-}
-
-function showFloatingText(msg, color) {
-    let popup = game.scene.scenes[0].add.text(player.x + 80, player.y - 100, msg, { fontSize: '32px', fontStyle: 'bold', fill: '#fff', stroke: '#000', strokeThickness: 4 });
-    popup.setTint(color);
-    game.scene.scenes[0].tweens.add({ targets: popup, y: popup.y - 60, alpha: 0, duration: 800, onComplete: () => popup.destroy() });
-}
-
-// Start sequence
-initializeGame();
-</script>
+    <script src="samurai.js"></script>
 </body>
 </html>
