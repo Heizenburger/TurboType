@@ -56,13 +56,13 @@ socket.on('syntaxMatchFound', (data) => {
 
 socket.on('rejoinSuccess', (data) => {
     localStorage.setItem('activeRoomUrl', window.location.href);
+    
+    // Hide the end screen popup
+    document.getElementById('end-screen').style.display = 'none';
+    
+    // Setup the screen and trigger the countdown!
     setupGameScreen(data);
-    
-    hasFinished = false; isHacking = true; startTime = Date.now(); lastCharTime = Date.now();
-    totalKeystrokes = 0; errors = 0; isLocked = false;
-    
-    renderCode();
-    document.getElementById('timer-overlay').style.display = 'none'; enableHackingInput();
+    startCountdown();
 });
 
 function getFileExtension(lang) {
@@ -170,7 +170,7 @@ function handleHacking(e) {
         currentIndex++; 
         
         // Push Keystroke to the Physics Engine!
-        socket.emit('syntaxKeystroke', { roomCode: currentRoomCode, name: playerName });
+        socket.emit('syntaxKeystroke', { roomCode: currentRoomCode, id: socket.id });
 
         // Endless Code Stream Logic (Loop the chunk instantly)
         if (currentIndex >= targetSnippet.length) { 

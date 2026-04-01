@@ -43,7 +43,7 @@ async function initializeGame() {
             userSkillScore = user.skillScore;
             applyDifficultyScaling(userSkillScore);
             document.getElementById('loading-screen').style.display = 'none';
-            new Phaser.Game(config); // Start game only after data is loaded
+            game = new Phaser.Game(config); // Start game only after data is loaded
         } else {
             window.location.href = 'index.html';
         }
@@ -75,9 +75,24 @@ const config = {
     scene: { preload: preload, create: create, update: update }
 };
 
-const wordsEasy = ["CAT", "DOG", "RUN", "JUMP", "HIT", "DASH"];
-const wordsMedium = ["BLADE", "STRIKE", "NINJA", "TURBO", "GLITCH"];
-const wordsHard = ["SAMURAI", "ASSASSIN", "SHURIKEN", "VENGEANCE"];
+let game; // <-- DECLARED GLOBALLY SO POPUPS WORK
+
+// --- MASSIVE DYNAMIC DICTIONARIES ---
+const wordsEasy = [
+    "RUN", "JUMP", "HIT", "DASH", "CUT", "BUG", "CODE", "DATA", "BYTE", "NEON", 
+    "WIRE", "CHIP", "NODE", "PORT", "DISK", "TECH", "WEB", "NET", "LINK", "FIRE", 
+    "ICE", "BURN", "HACK", "ROOT", "CORE", "RAM", "CPU", "BITE", "KICK", "SPIN"
+];
+const wordsMedium = [
+    "BLADE", "STRIKE", "NINJA", "TURBO", "GLITCH", "SERVER", "SCRIPT", "SYNTAX", 
+    "SYSTEM", "UPLOAD", "PACKET", "ROUTER", "HACKER", "CYBORG", "MATRIX", "PROMPT", 
+    "MEMORY", "KERNEL", "MODULE", "PYTHON", "SHADOW", "KATANA", "WEAPON", "REBOOT"
+];
+const wordsHard = [
+    "SAMURAI", "ASSASSIN", "SHURIKEN", "VENGEANCE", "MAINFRAME", "ALGORITHM", 
+    "ENCRYPTION", "BANDWIDTH", "FIREWALL", "PROTOCOL", "OVERRIDE", "DATABANK", 
+    "INTERFACE", "PROCESSOR", "TERMINAL", "INFILTRATE", "CYBERNETIC", "SYNDICATE"
+];
 
 let player, enemies, background, healthBar, currentWord = "START", userInput = "";
 let scoreText, wordText, uiScoreText;
@@ -172,7 +187,14 @@ function handleTyping(event) {
             
             if (userInput === currentWord) completeWord();
         } else {
-            wordText.setColor('#ff0000'); // Typo
+            // Typo logic
+            wordText.setColor('#ff0000'); // Flash the target word Red
+            userInput = "";               // Wipe the bad input
+            scoreText.setText(userInput); // Clear the screen text
+            
+            setTimeout(() => {
+                if(wordText && wordText.active) wordText.setColor('#ffffff');
+            }, 300);
         }
     } else if (event.keyCode === 8) { 
         userInput = userInput.slice(0, -1);
@@ -187,7 +209,7 @@ function completeWord() {
     let timeTakenMins = (now - sessionStats.lastWordCompleteTime) / 60000;
     let wordBurstWPM = Math.round((currentWord.length / 5) / timeTakenMins);
     
-    if (wordBurstWPM > sessionStats.peakBurstWPM && wordBurstWPM < 300) { // Cap sanity check
+    if (wordBurstWPM > sessionStats.peakBurstWPM && wordBurstWPM < 300) { 
         sessionStats.peakBurstWPM = wordBurstWPM;
     }
     sessionStats.lastWordCompleteTime = now;
@@ -195,6 +217,7 @@ function completeWord() {
     // Game Logic
     scrollSpeed += 5;
     userInput = "";
+    scoreText.setText(""); // <-- CLEARS THE GREEN TEXT
     player.play('attack');
     score += 10;
     uiScoreText.setText("SCORE: " + score);
@@ -210,10 +233,13 @@ function completeWord() {
 
     if (closestEnemy && minDist < 380) {
         closestEnemy.destroy();
+        showFloatingText("HIT!", 0x00ff00); 
         if (currentSpawnDelay > 800) {
             currentSpawnDelay -= 50;
             spawnTimer.delay = currentSpawnDelay;
         }
+    } else {
+        showFloatingText("MISS!", 0xffa500); 
     }
 
     // Select next word based on dynamic difficulty multiplier
@@ -265,6 +291,12 @@ async function takeDamage(player, enemy) {
 
         wordText.setText(`GAME OVER\nWPM: ${finalWpm} | ACC: ${finalAcc}%\nPress ENTER to Return to Hub`).setAlign('center');
     }
+}
+
+function showFloatingText(msg, color) {
+    let popup = game.scene.scenes[0].add.text(player.x + 80, player.y - 100, msg, { fontSize: '32px', fontStyle: 'bold', fill: '#fff', stroke: '#000', strokeThickness: 4 });
+    popup.setTint(color);
+    game.scene.scenes[0].tweens.add({ targets: popup, y: popup.y - 60, alpha: 0, duration: 800, onComplete: () => popup.destroy() });
 }
 
 // Start sequence

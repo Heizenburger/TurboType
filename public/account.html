@@ -3,43 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TurboType | Account</title>
+    <title>TurboType | Pilot Dossier</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            text-align: left;
-            margin-top: 20px;
-        }
-        .stat-box {
-            background: rgba(0,0,0,0.05);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        .stat-box h3 { margin: 0 0 10px 0; color: #1e293b; font-size: 1.1rem; }
-        .stat-value { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
-        
-        /* Persistent Header Styling */
-        #user-header {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            background: #fff;
-            padding: 10px 20px;
-            border-radius: 30px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        #user-header span { font-weight: bold; color: var(--primary); }
-        .header-btn { background: none; border: none; color: #64748b; cursor: pointer; font-size: 0.9rem; text-decoration: underline; }
-        .header-btn:hover { color: #ef4444; }
-    </style>
     <script>
         // Protect the route
         if (!localStorage.getItem('token')) {
@@ -47,58 +12,130 @@
         }
     </script>
 </head>
-<body style="background: #f8fafc; color: #333;">
+<body>
 
-    <div id="user-header">
-        <div>Avatar <span id="display-avatar"></span></div>
-        <span id="display-gamertag"></span>
-        <a href="hub.html" style="color: #64748b; font-size: 0.9rem;">Game Hub</a>
-        <button class="header-btn" onclick="logout()">Logout</button>
+    <div class="keyboard-bg" id="key-bg">
+        <div class="key-wrapper" style="left: 10%; animation-duration: 12s; animation-delay: 0s;"><div class="floating-key key-blue">W</div></div>
+        <div class="key-wrapper" style="left: 25%; animation-duration: 15s; animation-delay: 2s;"><div class="floating-key key-green">{ }</div></div>
+        <div class="key-wrapper" style="left: 45%; animation-duration: 10s; animation-delay: 5s;"><div class="floating-key key-red">ESC</div></div>
+        <div class="key-wrapper" style="left: 60%; animation-duration: 14s; animation-delay: 1s;"><div class="floating-key key-blue">A</div></div>
+        <div class="key-wrapper" style="left: 75%; animation-duration: 11s; animation-delay: 4s;"><div class="floating-key key-green">=></div></div>
+        <div class="key-wrapper" style="left: 85%; animation-duration: 13s; animation-delay: 3s;"><div class="floating-key key-blue">S</div></div>
+        <div class="key-wrapper" style="left: 20%; animation-duration: 16s; animation-delay: 7s;"><div class="floating-key key-red">CTRL</div></div>
+        <div class="key-wrapper" style="left: 80%; animation-duration: 12s; animation-delay: 6s;"><div class="floating-key key-green">/</div></div>
+        <div class="key-wrapper" style="left: 35%; animation-duration: 18s; animation-delay: 8s;"><div class="floating-key key-blue">D</div></div>
+        <div class="key-wrapper" style="left: 50%; animation-duration: 14s; animation-delay: 9s;"><div class="floating-key key-red">ALT</div></div>
     </div>
 
-    <div id="ui-container" style="max-width: 800px; margin: 80px auto 20px auto;">
-        <h1 class="arcade-title" style="color: var(--primary);">PILOT DOSSIER</h1>
-        
-        <div class="dashboard-grid">
-            <div>
-                <div class="stat-box" style="background: var(--primary); color: white; border: none; text-align: center;">
-                    <h3 style="color: white;">GLOBAL SKILL SCORE</h3>
-                    <div class="stat-value" id="skill-score" style="color: white; font-size: 3rem;">---</div>
-                    <p style="margin: 5px 0 0 0; font-size: 0.9rem;">Ranked Top <span id="rank-percentile">--</span>% Globally</p>
-                </div>
-
-                <div class="stat-box" style="margin-top: 20px;">
-                    <h3>Typing Metrics</h3>
-                    <p>Avg WPM: <span class="stat-value" id="avg-wpm" style="font-size: 1.2rem;">--</span></p>
-                    <p>Avg Accuracy: <span class="stat-value" id="avg-acc" style="font-size: 1.2rem;">--</span>%</p>
-                    <p>Peak Burst: <span class="stat-value" id="peak-burst" style="font-size: 1.2rem;">--</span> WPM</p>
-                </div>
-
-                <div class="stat-box" style="margin-top: 20px;">
-                    <h3>Game Records</h3>
-                    <p>Turbo Racing Wins: <span class="stat-value" id="tr-wins" style="font-size: 1.2rem;">--</span> / <span id="tr-played">--</span></p>
-                    <p>Samurai Highest Wave: <span class="stat-value" id="sam-wave" style="font-size: 1.2rem;">--</span></p>
-                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0;">
-                    <p>Syntax Arena Wins: <span class="stat-value" id="syntax-wins" style="font-size: 1.2rem;">--</span> / <span id="syntax-played">--</span></p>
-                    <p>Colosseum Raid Damage: <span class="stat-value" id="raid-damage" style="font-size: 1.2rem;">--</span> <span style="font-size: 0.9rem;">(in <span id="raid-played">--</span> raids)</span></p>
-                </div>
+    <div id="user-header">
+        <div class="header-title">TURBO TYPE</div>
+        <div class="header-right">
+            <a href="hub.html" class="header-btn">Game Hub</a>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img id="display-avatar" src="" alt="Avatar" style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--primary-neon); background: rgba(255,255,255,0.05);">
+                <span id="display-gamertag" style="color: #a5b4fc; font-weight: bold; font-size: 1rem;"></span>
             </div>
-
-            <div>
-                <div class="stat-box">
-                    <h3>Account Settings</h3>
-                    <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">Update your credentials below. Leave password blank if you don't want to change it.</p>
-                    
-                    <input type="text" id="update-gamertag" class="diff-select" placeholder="New Gamertag">
-                    <input type="password" id="update-pass" class="diff-select" placeholder="New Password">
-                    
-                    <button id="update-btn" style="width: 100%; margin-top: 15px; padding: 12px; cursor: pointer; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: bold;">UPDATE PROFILE</button>
-                    <p id="update-msg" style="margin-top: 10px; font-weight: bold; font-size: 0.9rem;"></p>
-                </div>
-            </div>
+            <button class="header-btn logout-btn" onclick="logout()">Disconnect</button>
         </div>
     </div>
 
+    <div id="ui-container">
+        
+        <div style="display: flex; align-items: center; gap: 35px; margin-bottom: 30px; background: var(--container-bg); padding: 35px; border-radius: 20px; border: 2px solid var(--primary-neon); box-shadow: 0 0 40px rgba(59, 130, 246, 0.25); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);">
+            <img id="profile-avatar-large" src="" alt="Avatar" style="width: 130px; height: 130px; border-radius: 50%; border: 5px solid var(--success-neon); background: rgba(255,255,255,0.05); box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);">
+            <div>
+                <h2 style="margin: 0; color: #fff; font-size: 3.2rem; text-shadow: 0 0 15px rgba(59, 130, 246, 0.6); letter-spacing: 3px; text-transform: uppercase; font-weight: 900;" id="profile-gamertag-large">Loading...</h2>
+                <p style="margin: 10px 0 0 0; color: var(--text-muted); font-weight: bold; text-transform: uppercase; letter-spacing: 5px; font-size: 1rem; font-family: monospace;">PILOT DOSSIER // DECLASSIFIED</p>
+            </div>
+        </div>
+        
+        <div class="dashboard-grid">
+            <div style="display: flex; flex-direction: column; gap: 25px;">
+                
+                <div class="stat-box" style="border-color: var(--success-neon); box-shadow: 0 0 25px rgba(16, 185, 129, 0.25); text-align: center;">
+                    <h3 style="color: var(--success-neon);">GLOBAL SKILL SCORE</h3>
+                    <div class="stat-value" id="skill-score" style="color: #fff; font-size: 5rem; text-shadow: 0 0 30px var(--success-neon); line-height: 1;">---</div>
+                    <p style="margin: 15px 0 0 0; font-size: 1.1rem; color: var(--text-muted); font-weight: bold;">Ranked Top <span id="rank-percentile" class="color-success">--</span>% Globally</p>
+                </div>
+
+                <div class="stat-box">
+                    <h3>Typing Metrics</h3>
+                    <div class="metric-row">
+                        <span class="metric-label">Average Speed</span>
+                        <span class="stat-value color-primary"><span id="avg-wpm">--</span> <span style="font-size: 1rem; color:var(--text-muted);">WPM</span></span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Average Accuracy</span>
+                        <span class="stat-value color-success"><span id="avg-acc">--</span>%</span>
+                    </div>
+                    <div class="metric-row" style="border: none; margin-bottom: 0; padding-bottom: 0;">
+                        <span class="metric-label">Peak Burst Speed</span>
+                        <span class="stat-value color-warning"><span id="peak-burst">--</span> <span style="font-size: 1rem; color:var(--text-muted);">WPM</span></span>
+                    </div>
+                </div>
+
+                <div class="stat-box">
+                    <h3>Combat Records</h3>
+                    <div class="metric-row">
+                        <span class="metric-label">Turbo Racing Wins</span>
+                        <span class="stat-text"><span class="stat-value color-primary" style="font-size: 1.5rem;" id="tr-wins">--</span> / <span id="tr-played">--</span> matches</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Samurai Highest Wave</span>
+                        <span class="stat-value color-warning" style="font-size: 1.5rem;" id="sam-wave">--</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Syntax Arena Wins</span>
+                        <span class="stat-text"><span class="stat-value color-success" style="font-size: 1.5rem;" id="syntax-wins">--</span> / <span id="syntax-played">--</span> battles</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Colosseum Raid Damage</span>
+                        <span class="stat-text"><span class="stat-value color-danger" style="font-size: 1.5rem;" id="raid-damage">--</span> <span style="font-size: 0.9rem; color: #64748b;">(total across <span id="raid-played">--</span> raids)</span></span>
+                    </div>
+                    <div class="metric-row" style="border: none; margin-bottom: 0; padding-bottom: 0;">
+                        <span class="metric-label">Neon Royale Wins</span>
+                        <span class="stat-text"><span class="stat-value" style="color: #06b6d4; font-size: 1.5rem; text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);" id="neon-wins">--</span> / <span id="neon-played">--</span> matches</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="stat-box" style="position: sticky; top: 105px;">
+                    <h3>Account Settings</h3>
+                    <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 25px; line-height: 1.6;">Update your system credentials below. To maintain your current security protocol, leave the password field blank.</p>
+                    
+                    <input type="text" id="update-gamertag" class="diff-select auth-input" placeholder="New Gamertag">
+                    <input type="password" id="update-pass" class="diff-select auth-input" placeholder="New Password">
+                    
+                    <button id="update-btn" class="auth-btn">UPDATE PROFILE</button>
+                    <p id="update-msg" style="margin-top: 20px; font-weight: bold; font-size: 1rem; text-align: center; text-shadow: 0 0 10px rgba(255,255,255,0.2);"></p>
+                </div>
+            </div>
+        </div>
+        
+        <div style="height: 50px;"></div> </div>
+
+    <script>
+        document.addEventListener('mousemove', (e) => {
+            const keys = document.querySelectorAll('.floating-key');
+            keys.forEach(key => {
+                const rect = key.getBoundingClientRect();
+                const keyCenterX = rect.left + rect.width / 2;
+                const keyCenterY = rect.top + rect.height / 2;
+                const dist = Math.hypot(e.clientX - keyCenterX, e.clientY - keyCenterY);
+
+                if (dist < 150) {
+                    const pushX = ((keyCenterX - e.clientX) / dist) * 30;
+                    const pushY = ((keyCenterY - e.clientY) / dist) * 30;
+                    key.style.transform = `translate(${pushX}px, ${pushY}px) scale(1.2)`;
+                    key.classList.add('active');
+                } else {
+                    key.style.transform = `translate(0px, 0px) scale(1)`;
+                    key.classList.remove('active');
+                }
+            });
+        });
+    </script>
     <script src="account.js"></script>
 </body>
 </html>

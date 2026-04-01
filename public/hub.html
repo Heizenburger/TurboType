@@ -4,97 +4,147 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TurboType Hub</title>
-    <style>
-        /* Keep your existing CSS here */
-        body { margin: 0; background: #111; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; position: relative; }
-        h1 { font-size: 3rem; color: #6366f1; text-transform: uppercase; letter-spacing: 4px; }
-        .menu { display: flex; gap: 20px; margin-top: 30px; }
-        .card { padding: 20px 40px; background: #222; border: 2px solid #333; border-radius: 12px; text-align: center; transition: 0.3s; cursor: pointer; text-decoration: none; color: white; }
-        .card:hover { border-color: #6366f1; transform: translateY(-5px); }
-        .card h2 { margin: 0 0 10px 0; }
-        .tag { font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; }
-        .online { background: #2ecc71; color: #000; }
-        .local { background: #f1c40f; color: #000; }
-
-        /* NEW: User Profile Header */
-        #user-header {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            background: #222;
-            padding: 10px 20px;
-            border-radius: 30px;
-            border: 1px solid #444;
-        }
-        #user-header span { font-weight: bold; color: #6366f1; }
-        .header-btn { background: none; border: none; color: white; cursor: pointer; font-size: 0.9rem; text-decoration: underline; }
-        .header-btn:hover { color: #ef4444; }
-    </style>
+    <link rel="stylesheet" href="style.css">
     <script>
-        // ROUTE PROTECTION: If no token exists, redirect back to login immediately
-        if (!localStorage.getItem('token')) {
-            window.location.href = 'index.html';
-        }
+        if (!localStorage.getItem('token')) window.location.href = 'index.html';
     </script>
+    <style>
+        /* Hub Specific Centering & Grid Fixes */
+        #ui-container {
+            margin-top: 15vh !important; /* Pushes everything down to the center */
+            max-width: 800px; /* Keeps the grid tight and readable */
+        }
+        
+        .menu {
+            display: grid !important; 
+            grid-template-columns: repeat(2, 1fr) !important; /* Forces a perfect 2x2 Grid */
+            gap: 25px !important;
+            margin-top: 30px !important;
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%; 
+            box-sizing: border-box;
+        }
+        
+        /* Responsive fallback for mobile devices */
+        @media (max-width: 600px) {
+            .menu { grid-template-columns: 1fr !important; }
+            #ui-container { margin-top: 100px !important; }
+        }
+    </style>
 </head>
 <body>
 
-    <div id="user-header">
-        <div>Avatar <span id="display-avatar"></span></div>
-        <span id="display-gamertag"></span>
-        <a href="account.html" style="color: white; font-size: 0.9rem;">Account</a>
-        <button class="header-btn" onclick="logout()">Logout</button>
+    <div class="keyboard-bg" id="key-bg">
+        <div class="key-wrapper" style="left: 10%; animation-duration: 12s; animation-delay: 0s;"><div class="floating-key key-blue">W</div></div>
+        <div class="key-wrapper" style="left: 25%; animation-duration: 15s; animation-delay: 2s;"><div class="floating-key key-green">{ }</div></div>
+        <div class="key-wrapper" style="left: 45%; animation-duration: 10s; animation-delay: 5s;"><div class="floating-key key-red">ESC</div></div>
+        <div class="key-wrapper" style="left: 60%; animation-duration: 14s; animation-delay: 1s;"><div class="floating-key key-blue">A</div></div>
+        <div class="key-wrapper" style="left: 75%; animation-duration: 11s; animation-delay: 4s;"><div class="floating-key key-green">=></div></div>
+        <div class="key-wrapper" style="left: 85%; animation-duration: 13s; animation-delay: 3s;"><div class="floating-key key-blue">S</div></div>
+        <div class="key-wrapper" style="left: 20%; animation-duration: 16s; animation-delay: 7s;"><div class="floating-key key-red">CTRL</div></div>
+        <div class="key-wrapper" style="left: 80%; animation-duration: 12s; animation-delay: 6s;"><div class="floating-key key-green">/</div></div>
+        <div class="key-wrapper" style="left: 35%; animation-duration: 18s; animation-delay: 8s;"><div class="floating-key key-blue">D</div></div>
+        <div class="key-wrapper" style="left: 50%; animation-duration: 14s; animation-delay: 9s;"><div class="floating-key key-red">ALT</div></div>
     </div>
 
-    <h1>Turbo Type</h1>
-    <p>Select a Game Mode</p>
+    <div id="user-header">
+        <div></div> 
+        <div class="header-right">
+            <a href="account.html" class="header-btn" style="color: white;">Account</a>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img id="display-avatar" src="" alt="Avatar" style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--primary-neon); background: rgba(255,255,255,0.05);">
+                <span id="display-gamertag" style="color: #a5b4fc; font-weight: bold; font-size: 1rem;"></span>
+            </div>
+            <button class="header-btn logout-btn" onclick="logout()">Disconnect</button>
+        </div>
+    </div>
 
-    <div class="menu">
-        <a href="samurai_game.html" class="card">
-            <h2>Samurai Survival</h2>
-            <span class="tag online">Playable Online</span>
-            <p>Single Player Campaign</p>
-        </a>
+    <div id="ui-container">
+        <h1 class="arcade-title" style="font-size: 3.5rem; margin-bottom: 0;">TURBO TYPE</h1>
+        <p class="subtitle" style="margin-top: 10px;">SELECT INITIALIZATION PROTOCOL</p>
 
-        <a href="turbo_racing.html" class="card">
-            <h2>Turbo Racing</h2>
-            <span class="tag local">Requires Local Server</span>
-            <p>Multiplayer 1v1</p>
-        </a>
+        <div class="menu">
+            <!-- Neon Royale moved to the top and spanning the width -->
+            <a href="neon_royale.html" class="card royale" style="grid-column: 1 / -1;">
+                <h2 style="color: #06b6d4;">Neon Royale</h2>
+                <span class="tag online">10-PLAYER BATTLE ROYALE</span>
+                <p>Survive 9 rounds of typing combat. Last pilot standing wins.</p>
+            </a>
 
-        <a href="syntax_arena.html" class="card" style="border-color: #10b981;">
-            <h2 style="color: #10b981;">Syntax Arena</h2>
-            <span class="tag online">PvP Online</span>
-            <p>Strict-Mode C++ Hacker Battles</p>
-        </a>
+            <a href="samurai_game.html" class="card samurai">
+                <h2 style="color: #60a5fa;">Samurai Survival</h2>
+                <span class="tag online">SOLO CAMPAIGN</span>
+                <p>Adaptive difficulty combat loop.</p>
+            </a>
 
-        <a href="colosseum.html" class="card" style="border-color: #e11d48;">
-            <h2 style="color: #e11d48;">Colosseum Raid</h2>
-            <span class="tag online">Co-op PvE Server</span>
-            <p>Type Lore to Slay the Global Boss</p>
-        </a>
+            <a href="turbo_racing.html" class="card racing">
+                <h2 style="color: #fbbf24;">Turbo Racing</h2>
+                <span class="tag local">PvP MULTIPLAYER</span>
+                <p>AI-driven competitive tracks.</p>
+            </a>
+
+            <a href="syntax_arena.html" class="card syntax">
+                <h2 style="color: #34d399;">Syntax Arena</h2>
+                <span class="tag online">PvP MULTIPLAYER</span>
+                <p>Strict-Mode C++ Hacker Battles.</p>
+            </a>
+
+            <a href="colosseum.html" class="card raid">
+                <h2 style="color: #fb7185;">Colosseum Raid</h2>
+                <span class="tag online">PvE CO-OP</span>
+                <p>Type Lore to Slay the Global Boss.</p>
+            </a>
+        </div>
     </div>
 
     <script>
-        if (!localStorage.getItem('token')) {
-            window.location.href = 'index.html';
-        } else {
-            // AUTO-RECONNECT: Prevent joining new games if locked in
+        // Floating Keys Interaction
+        document.addEventListener('mousemove', (e) => {
+            const keys = document.querySelectorAll('.floating-key');
+            keys.forEach(key => {
+                const rect = key.getBoundingClientRect();
+                const keyCenterX = rect.left + rect.width / 2;
+                const keyCenterY = rect.top + rect.height / 2;
+                const dist = Math.hypot(e.clientX - keyCenterX, e.clientY - keyCenterY);
+
+                if (dist < 150) {
+                    const pushX = ((keyCenterX - e.clientX) / dist) * 30;
+                    const pushY = ((keyCenterY - e.clientY) / dist) * 30;
+                    key.style.transform = `translate(${pushX}px, ${pushY}px) scale(1.2)`;
+                    key.classList.add('active');
+                } else {
+                    key.style.transform = `translate(0px, 0px) scale(1)`;
+                    key.classList.remove('active');
+                }
+            });
+        });
+
+        // Hub Logic & Auto-Reconnect
+        if (localStorage.getItem('token')) {
             const activeRoomUrl = localStorage.getItem('activeRoomUrl');
             if (activeRoomUrl) {
                 alert("You are currently in an active game. Reconnecting...");
                 window.location.href = activeRoomUrl;
             }
         }
-
+        
+        // Load User Data & Avatar into Header
+        let avatarUrl = localStorage.getItem('avatar');
+        if (avatarUrl && !avatarUrl.startsWith('http')) {
+            avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=Bot${avatarUrl}`;
+        }
+        
+        document.getElementById('display-avatar').src = avatarUrl;
         document.getElementById('display-gamertag').innerText = localStorage.getItem('gamertag');
-        document.getElementById('display-avatar').innerText = localStorage.getItem('avatar');
 
         function logout() {
-            localStorage.clear(); // Clears token AND active game locks
+            localStorage.clear(); 
             window.location.href = 'index.html';
         }
     </script>
