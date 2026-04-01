@@ -162,6 +162,25 @@ let waitingPlayer = null;
 function generateRoomCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
 // --- AI GENERATORS WITH OFFLINE FALLBACKS ---
+
+// NEW: Dynamic Samurai Wave Generator
+async function generateSamuraiWords(waveLevel) {
+    let count = Math.min(10 + (waveLevel * 2), 30); // Max 30 words per wave
+    let diff = waveLevel <= 2 ? "simple 4-letter" : (waveLevel <= 5 ? "medium 6-8 letter" : "complex 9+ letter");
+    
+    const prompt = `Task: Generate a comma-separated list of exactly ${count} ${diff} words related to combat, ninjas, or zombies. Output ONLY the words, separated by commas. No spaces or formatting.`;
+
+    try {
+        const result = await model.generateContent(prompt);
+        let text = result.response.text().replace(/\n/g, '').toUpperCase();
+        return text.split(',').map(w => w.trim()).filter(w => w.length > 0);
+    } catch (error) {
+        console.error("Samurai AI Limit Hit - Using Fallback.");
+        const fallbackWords = ["BITE", "SLASH", "DASH", "RUN", "ZOMBIE", "CLAW", "BLOOD", "BONE", "SWORD", "NINJA", "STRIKE", "INFECTED", "MUTANT", "HORDE", "SURVIVE", "SHURIKEN", "VENGEANCE", "ASSASSIN"];
+        return fallbackWords.sort(() => 0.5 - Math.random()).slice(0, count);
+    }
+}
+
 async function generateTypingText(difficultyLevel, lengthLevel = 2) {
     let wordCount = 50; 
     if (lengthLevel === 1) wordCount = 20;       
@@ -241,14 +260,25 @@ console.log(decryptedPayload);`,
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
+    // NEW: Samurai Wave Handler
+    socket.on('requestSamuraiWave', async (data) => {
+        const wave = data.wave || 1;
+        const words = await generateSamuraiWords(wave);
+        socket.emit('samuraiWaveData', { wave: wave, words: words });
+    });
+
     socket.on('createRoom', async (data) => {
         const roomCode = generateRoomCode();
+        const user = await User.findOne({ gamertag: data.name });
+        const pScore = user ? user.skillScore : 0;
+
         activeRooms[roomCode] = {
             roomCode: roomCode,
             gameMode: data.gameMode || 'turboRacing',
             language: data.language || 'JavaScript', 
+            raceLength: data.length || 2,
             status: 'waiting',
-            players: { [socket.id]: { id: socket.id, name: data.name, progress: 0, wpm: 0 } },
+            players: { [socket.id]: { id: socket.id, name: data.name, progress: 0, wpm: 0, skillScore: pScore } },
             rematchVoters: new Set()
         };
 
@@ -265,12 +295,23 @@ io.on('connection', (socket) => {
         const room = activeRooms[data.roomCode];
         if (!room) return socket.emit('roomError', 'Room not found.');
         
-        room.players[socket.id] = { id: socket.id, name: data.name, progress: 0, wpm: 0 };
+        const user = await User.findOne({ gamertag: data.name });
+        const pScore = user ? user.skillScore : 0;
+
+        room.players[socket.id] = { id: socket.id, name: data.name, progress: 0, wpm: 0, skillScore: pScore };
         socket.join(data.roomCode);
 
         if (room.gameMode === 'turboRacing' && Object.keys(room.players).length === 2) {
             room.status = 'playing';
-            const text = await generateTypingText(2, 2);
+            
+            const pIds = Object.keys(room.players);
+            const minScore = Math.min(room.players[pIds[0]].skillScore, room.players[pIds[1]].skillScore);
+            
+            let diffLevel = 2;
+            if (minScore < 250) diffLevel = 1;
+            else if (minScore >= 700) diffLevel = 3;
+
+            const text = await generateTypingText(diffLevel, room.raceLength);
             io.to(data.roomCode).emit('matchStart', { players: room.players, text: text });
             
         } else if (room.gameMode === 'colosseumRaid') {
@@ -291,7 +332,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('updateProgress', (data) => socket.to(data.roomCode).emit('opponentProgress', data));
-
     socket.on('syntaxKeystroke', (data) => {
         const room = activeRooms[data.roomCode];
         if (room && room.status === 'playing') {
@@ -300,14 +340,12 @@ io.on('connection', (socket) => {
         }
     });
 
-    // RAID SYNC LOGIC
     socket.on('raidAttack', (data) => { socket.to(data.roomCode).emit('raidAttackUpdate', { id: socket.id }); });
     socket.on('raidHazardHit', (data) => { socket.to(data.roomCode).emit('raidHazardUpdate', { id: socket.id }); });
 
     socket.on('dealDamage', (data) => {
         const room = activeRooms[data.roomCode];
         if (room && room.boss && room.boss.hp > 0) {
-            // Apply damage (or heal if damage is negative), cap at MAX_HP
             room.boss.hp = Math.min(room.boss.maxHp, Math.max(0, room.boss.hp - data.damage));
             io.to(data.roomCode).emit('bossHit', { newHp: room.boss.hp });
             if (room.boss.hp === 0) io.to(data.roomCode).emit('bossDefeated', { message: "The Boss has fallen!" });
@@ -334,7 +372,13 @@ io.on('connection', (socket) => {
                     room.corePosition = 0; room.status = 'playing';
                     io.to(data.roomCode).emit('rejoinSuccess', { players: room.players, snippet: snippet, selectedLanguage: room.language });
                 } else if (room.gameMode === 'turboRacing') {
-                    const text = await generateTypingText(2, 2);
+                    const pIds = Object.keys(room.players);
+                    const minScore = Math.min(room.players[pIds[0]].skillScore, room.players[pIds[1]].skillScore);
+                    let diffLevel = 2;
+                    if (minScore < 250) diffLevel = 1;
+                    else if (minScore >= 700) diffLevel = 3;
+
+                    const text = await generateTypingText(diffLevel, room.raceLength || 2);
                     room.status = 'playing';
                     io.to(data.roomCode).emit('rejoinSuccess', { players: room.players, text: text });
                 }
