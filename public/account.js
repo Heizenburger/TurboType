@@ -92,6 +92,13 @@ function populateDashboard(user) {
     document.getElementById('syntax-wins').innerText = synWins;
     updateProgressBar('syntax-bar', synWins, synPlayed);
 
+    // NEW: Populating Neon Royale Stats
+    const neonWins = user.games?.neonRoyale?.wins || 0;
+    const neonPlayed = user.games?.neonRoyale?.played || 0;
+    document.getElementById('neon-played').innerText = neonPlayed;
+    document.getElementById('neon-wins').innerText = neonWins;
+    updateProgressBar('neon-bar', neonWins, neonPlayed);
+
     document.getElementById('sam-wave').innerText = user.games?.samuraiTyping?.highestWave || 0;
     document.getElementById('raid-played').innerText = user.games?.colosseumRaid?.played || 0;
     document.getElementById('raid-damage').innerText = user.games?.colosseumRaid?.totalDamage || 0;

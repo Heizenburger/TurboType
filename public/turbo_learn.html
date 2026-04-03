@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TurboType | Training Dojo</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="learn_theme.css" />
+    <script>
+        if (!localStorage.getItem('token')) window.location.href = 'index.html';
+    </script>
+</head>
+<body>
+
+    <a href="hub.html" class="back-btn" title="Return to Hub">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        HUB
+    </a>
+
+    <div id="learn-container">
+        <aside class="curriculum-sidebar glass-panel">
+            <h2 style="color: #34d399; margin-top: 0; letter-spacing: 2px;">MODULES</h2>
+            <div id="lesson-list">
+                </div>
+        </aside>
+
+        <main class="training-main">
+            
+            <header class="training-header glass-panel">
+                <div class="stat">
+                    <span class="label">MODULE</span>
+                    <span class="value" id="current-module-name">Core Calibration 1</span>
+                </div>
+                <div class="stat">
+                    <span class="label">ACCURACY</span>
+                    <span class="value" id="live-acc" style="color: #34d399;">100%</span>
+                </div>
+                <div class="stat">
+                    <span class="label">SPEED</span>
+                    <span class="value" id="live-wpm" style="color: #60a5fa;">0 WPM</span>
+                </div>
+                
+                <div class="controls">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-zones" checked>
+                        <span class="slider"></span>
+                        <span class="toggle-label">Finger Zones</span>
+                    </label>
+                </div>
+            </header>
+
+            <div class="typing-console glass-panel">
+                <div id="text-window">
+                    <div id="target-text">Select a module to begin calibration...</div>
+                </div>
+                <input type="text" id="hidden-input" autocomplete="off" spellcheck="false" autofocus />
+            </div>
+            <div class="keyboard-container show-zones" id="virtual-keyboard">
+                <div class="keyboard-wrapper">
+                    <div class="key-row row-1">
+                        <div class="key" data-key="q" data-finger="l-pinky">Q</div>
+                        <div class="key" data-key="w" data-finger="l-ring">W</div>
+                        <div class="key" data-key="e" data-finger="l-middle">E</div>
+                        <div class="key" data-key="r" data-finger="l-index">R</div>
+                        <div class="key" data-key="t" data-finger="l-index">T</div>
+                        <div class="key" data-key="y" data-finger="r-index">Y</div>
+                        <div class="key" data-key="u" data-finger="r-index">U</div>
+                        <div class="key" data-key="i" data-finger="r-middle">I</div>
+                        <div class="key" data-key="o" data-finger="r-ring">O</div>
+                        <div class="key" data-key="p" data-finger="r-pinky">P</div>
+                        <div class="key" data-key="[" data-finger="r-pinky">[</div>
+                        <div class="key" data-key="]" data-finger="r-pinky">]</div>
+                    </div>
+                    <div class="key-row row-2">
+                        <div class="key home-key" data-key="a" data-finger="l-pinky">A</div>
+                        <div class="key home-key" data-key="s" data-finger="l-ring">S</div>
+                        <div class="key home-key" data-key="d" data-finger="l-middle">D</div>
+                        <div class="key home-key homing-bump" data-key="f" data-finger="l-index">F</div>
+                        <div class="key" data-key="g" data-finger="l-index">G</div>
+                        <div class="key" data-key="h" data-finger="r-index">H</div>
+                        <div class="key home-key homing-bump" data-key="j" data-finger="r-index">J</div>
+                        <div class="key home-key" data-key="k" data-finger="r-middle">K</div>
+                        <div class="key home-key" data-key="l" data-finger="r-ring">L</div>
+                        <div class="key home-key" data-key=";" data-finger="r-pinky">;</div>
+                        <div class="key" data-key="'" data-finger="r-pinky">'</div>
+                    </div>
+                    <div class="key-row row-3">
+                        <div class="key" data-key="z" data-finger="l-pinky">Z</div>
+                        <div class="key" data-key="x" data-finger="l-ring">X</div>
+                        <div class="key" data-key="c" data-finger="l-middle">C</div>
+                        <div class="key" data-key="v" data-finger="l-index">V</div>
+                        <div class="key" data-key="b" data-finger="l-index">B</div>
+                        <div class="key" data-key="n" data-finger="r-index">N</div>
+                        <div class="key" data-key="m" data-finger="r-index">M</div>
+                        <div class="key" data-key="," data-finger="r-middle">,</div>
+                        <div class="key" data-key="." data-finger="r-ring">.</div>
+                        <div class="key" data-key="/" data-finger="r-pinky">/</div>
+                    </div>
+                    <div class="key-row row-4">
+                        <div class="key spacebar" data-key=" " data-finger="thumb">SPACE</div>
+                    </div>
+                </div>
+            </div>
+                <div class="key-row" style="padding-left: 20px;">
+                    <div class="key home-key" data-key="a" data-finger="l-pinky">A</div>
+                    <div class="key home-key" data-key="s" data-finger="l-ring">S</div>
+                    <div class="key home-key" data-key="d" data-finger="l-middle">D</div>
+                    <div class="key home-key homing-bump" data-key="f" data-finger="l-index">F</div>
+                    <div class="key" data-key="g" data-finger="l-index">G</div>
+                    <div class="key" data-key="h" data-finger="r-index">H</div>
+                    <div class="key home-key homing-bump" data-key="j" data-finger="r-index">J</div>
+                    <div class="key home-key" data-key="k" data-finger="r-middle">K</div>
+                    <div class="key home-key" data-key="l" data-finger="r-ring">L</div>
+                    <div class="key home-key" data-key=";" data-finger="r-pinky">;</div>
+                    <div class="key" data-key="'" data-finger="r-pinky">'</div>
+                </div>
+                <div class="key-row" style="padding-left: 50px;">
+                    <div class="key" data-key="z" data-finger="l-pinky">Z</div>
+                    <div class="key" data-key="x" data-finger="l-ring">X</div>
+                    <div class="key" data-key="c" data-finger="l-middle">C</div>
+                    <div class="key" data-key="v" data-finger="l-index">V</div>
+                    <div class="key" data-key="b" data-finger="l-index">B</div>
+                    <div class="key" data-key="n" data-finger="r-index">N</div>
+                    <div class="key" data-key="m" data-finger="r-index">M</div>
+                    <div class="key" data-key="," data-finger="r-middle">,</div>
+                    <div class="key" data-key="." data-finger="r-ring">.</div>
+                    <div class="key" data-key="/" data-finger="r-pinky">/</div>
+                </div>
+                <div class="key-row" style="justify-content: center;">
+                    <div class="key spacebar" data-key=" " data-finger="thumb">SPACE</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="end-modal" class="custom-modal">
+        <div class="modal-box">
+            <h2 style="color: #34d399; margin-top: 0; font-family: monospace;">MODULE COMPLETE</h2>
+            <div style="margin: 20px 0; font-size: 1.2rem; color: #cbd5e1;">
+                <p>Accuracy: <span id="final-acc" style="color: white; font-weight: bold;"></span></p>
+                <p>Speed: <span id="final-wpm" style="color: white; font-weight: bold;"></span></p>
+            </div>
+            <p id="pass-fail-msg" style="font-weight: bold; margin-bottom: 20px;"></p>
+            <button class="modal-btn btn-safe" onclick="document.getElementById('end-modal').style.display='none'">CLOSE</button>
+            <button class="modal-btn btn-primary" id="next-module-btn" style="display: none;">NEXT MODULE</button>
+        </div>
+    </div>
+
+    <script src="learn.js"></script>
+</body>
+</html>
