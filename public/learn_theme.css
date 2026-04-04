@@ -31,39 +31,32 @@ body { background: #020617; color: #e2e8f0; font-family: "Inter", sans-serif; ma
 .char.current { border-bottom: 3px solid #3b82f6; color: #fff; background: rgba(59, 130, 246, 0.2); }
 
 /* --- VIRTUAL KEYBOARD --- */
-.keyboard-container { padding: 30px; background: rgba(0,0,0,0.4); border-radius: 12px; border: 1px solid #1e293b; display: flex; justify-content: center; }
-.keyboard-wrapper { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.keyboard-container { padding: 30px; background: rgba(0,0,0,0.4); border-radius: 12px; border: 1px solid #1e293b; display: flex; justify-content: center; width: 100%; box-sizing: border-box; }
+.keyboard-wrapper { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .key-row { display: flex; gap: 8px; }
-.row-1 { padding-left: 0; }
-.row-2 { padding-left: 25px; } /* Half key stagger */
-.row-3 { padding-left: 60px; } /* Full key stagger */
-.row-4 { width: 100%; justify-content: center; margin-top: 5px; }
+.row-1 { padding-left: 0px; }
+.row-2 { padding-left: 29px; } /* Half key stagger */
+.row-3 { padding-left: 72px; } /* Full key stagger */
+.row-space { padding-left: 203px; } /* Spacebar align */
 
 .key { width: 50px; height: 50px; background: #1e293b; border: 2px solid #334155; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-family: monospace; font-weight: bold; font-size: 1.2rem; color: #94a3b8; transition: all 0.1s ease; box-shadow: 0 4px 0 #0f172a; position: relative; }
-.spacebar { width: 400px; }
+.spacebar { width: 340px; }
 
-/* The Homing Bumps (F and J) */
 .homing-bump::after { content: ''; position: absolute; bottom: 5px; width: 15px; height: 2px; background: #94a3b8; border-radius: 2px; }
 
-/* Real-Time Key Press Feedback */
 .key.pressed { transform: translateY(4px); box-shadow: 0 0 0 #0f172a; background: #cbd5e1 !important; color: #000 !important; }
-
-/* The Target Highlight (The key the user is supposed to hit) */
 .key.target-key { border-color: #3b82f6; color: #3b82f6; box-shadow: 0 4px 0 #1e3a8a, 0 0 15px rgba(59, 130, 246, 0.5); z-index: 10; }
 
-/* --- FINGER ZONES COLOR MAPPING --- */
 .show-zones .key[data-finger="l-pinky"] { background: rgba(236, 72, 153, 0.15); border-color: rgba(236, 72, 153, 0.5); color: #f472b6; }
 .show-zones .key[data-finger="l-ring"] { background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.5); color: #fbbf24; }
 .show-zones .key[data-finger="l-middle"] { background: rgba(234, 179, 8, 0.15); border-color: rgba(234, 179, 8, 0.5); color: #facc15; }
 .show-zones .key[data-finger="l-index"] { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.5); color: #34d399; }
-
 .show-zones .key[data-finger="r-index"] { background: rgba(14, 165, 233, 0.15); border-color: rgba(14, 165, 233, 0.5); color: #38bdf8; }
 .show-zones .key[data-finger="r-middle"] { background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.5); color: #818cf8; }
 .show-zones .key[data-finger="r-ring"] { background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.5); color: #c084fc; }
 .show-zones .key[data-finger="r-pinky"] { background: rgba(217, 70, 239, 0.15); border-color: rgba(217, 70, 239, 0.5); color: #e879f9; }
 .show-zones .key[data-finger="thumb"] { background: rgba(248, 113, 113, 0.15); border-color: rgba(248, 113, 113, 0.5); color: #f87171; }
 
-/* Toggle Switch */
 .toggle-switch { display: flex; align-items: center; cursor: pointer; gap: 10px; font-family: monospace; font-weight: bold; color: #94a3b8; }
 .toggle-switch input { display: none; }
 .slider { width: 40px; height: 20px; background-color: #334155; border-radius: 20px; position: relative; transition: 0.3s; }
@@ -71,7 +64,6 @@ body { background: #020617; color: #e2e8f0; font-family: "Inter", sans-serif; ma
 input:checked + .slider { background-color: #34d399; }
 input:checked + .slider::before { transform: translateX(20px); }
 
-/* Modal */
 .custom-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 1000; }
 .modal-box { background: #0f172a; padding: 40px; border-radius: 16px; border: 2px solid #34d399; text-align: center; color: white; min-width: 300px; box-shadow: 0 10px 40px rgba(52, 211, 153, 0.2); }
 .modal-btn { padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; font-family: monospace; transition: 0.2s; margin: 5px; }
