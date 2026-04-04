@@ -9,17 +9,24 @@
         if (!localStorage.getItem('token')) window.location.href = 'index.html';
     </script>
     <style>
-        /* Hub Specific Centering & Grid Fixes */
+        /* Hub Specific Centering & Margin Fixes */
         #ui-container {
-            margin-top: 15vh !important; /* Pushes everything down to the center */
-            max-width: 800px; /* Keeps the grid tight and readable */
+            margin-top: 8vh !important; 
+            margin-bottom: 4vh !important;
+            max-width: 800px; 
         }
         
         .menu {
-            display: grid !important; 
-            grid-template-columns: repeat(2, 1fr) !important; /* Forces a perfect 2x2 Grid */
-            gap: 25px !important;
-            margin-top: 30px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 15px !important;
+            margin-top: 20px !important;
+        }
+
+        .grid-2x2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
         }
 
         .card {
@@ -27,15 +34,62 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100%; 
+            height: auto; 
+            min-height: 110px;
+            padding: 15px !important;
             box-sizing: border-box;
+            border: 2px solid transparent;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            background: rgba(15, 23, 42, 0.6);
         }
+
+        .card h2 { font-size: 1.3rem !important; margin-bottom: 5px !important; }
+        .card p { font-size: 0.85rem !important; margin-top: 5px !important; color: #cbd5e1; }
+        .card-full { width: 100%; }
         
-        /* Responsive fallback for mobile devices */
-        @media (max-width: 600px) {
-            .menu { grid-template-columns: 1fr !important; }
-            #ui-container { margin-top: 100px !important; }
+        /* --- UI TWEAKS: Pushed down & Base Borders --- */
+        .learn-container-gap { margin-top: 40px; } 
+        
+        .card.neon { border-color: rgba(6, 182, 212, 0.4); }
+        .card.learn { border-color: rgba(168, 85, 247, 0.4); }
+
+        /* --- GLOW HOVER EFFECTS --- */
+        .card.neon:hover { border-color: #06b6d4; box-shadow: 0 0 20px rgba(6, 182, 212, 0.5); transform: translateY(-3px); background: rgba(6, 182, 212, 0.1); }
+        .card.samurai:hover { border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); transform: translateY(-3px); background: rgba(59, 130, 246, 0.1); }
+        .card.racing:hover { border-color: #f59e0b; box-shadow: 0 0 20px rgba(245, 158, 11, 0.5); transform: translateY(-3px); background: rgba(245, 158, 11, 0.1); }
+        .card.syntax:hover { border-color: #10b981; box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); transform: translateY(-3px); background: rgba(16, 185, 129, 0.1); }
+        .card.raid:hover { border-color: #e11d48; box-shadow: 0 0 20px rgba(225, 29, 72, 0.5); transform: translateY(-3px); background: rgba(225, 29, 72, 0.1); }
+        .card.learn:hover { border-color: #a855f7; box-shadow: 0 0 20px rgba(168, 85, 247, 0.5); transform: translateY(-3px); background: rgba(168, 85, 247, 0.1); }
+
+        /* --- FLOATING AVATAR DROPDOWN --- */
+        .profile-dropdown { position: fixed; top: 30px; right: 40px; z-index: 1000; }
+        .profile-avatar { width: 50px; height: 50px; border-radius: 50%; border: 3px solid var(--primary-neon, #3b82f6); background: rgba(255,255,255,0.05); cursor: pointer; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); transition: all 0.3s ease; }
+        .profile-dropdown:hover .profile-avatar { transform: scale(1.1); box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
+        .dropdown-content { position: absolute; top: 65px; right: 0; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color, #334155); border-radius: 12px; min-width: 160px; display: flex; flex-direction: column; opacity: 0; visibility: hidden; transform: translateY(-15px); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 0 15px 35px rgba(0,0,0,0.5); overflow: hidden; }
+        .profile-dropdown:hover .dropdown-content { opacity: 1; visibility: visible; transform: translateY(0); }
+        .dropdown-header { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #a5b4fc; font-weight: bold; font-size: 0.9rem; text-align: center; letter-spacing: 1px; }
+        .dropdown-item { padding: 10px 15px; color: white; text-decoration: none; background: none; border: none; text-align: center; font-size: 0.85rem; font-weight: bold; cursor: pointer; font-family: inherit; transition: background 0.2s, color 0.2s; }
+        .dropdown-item:hover { background: rgba(255,255,255,0.05); color: var(--primary-neon, #3b82f6); }
+        .dropdown-item.logout-text:hover { background: rgba(239, 68, 68, 0.1); color: var(--danger-neon, #ef4444); }
+        
+        /* --- TEAM CREDITS FOOTER --- */
+        .credits-footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-bottom: 30px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #64748b;
         }
+        .credits-footer span.creators { color: #94a3b8; font-weight: bold; }
+        .credits-footer span.solidarity { color: #10b981; font-weight: bold; letter-spacing: 1px; }
+
+        @media (max-width: 600px) {
+            .grid-2x2 { grid-template-columns: 1fr; }
+            #ui-container { margin-top: 100px !important; margin-bottom: 40px !important; }
+            .profile-dropdown { top: 15px; right: 15px; }
+        }
+        #user-header { display: none !important; }
     </style>
 </head>
 <body>
@@ -53,58 +107,68 @@
         <div class="key-wrapper" style="left: 50%; animation-duration: 14s; animation-delay: 9s;"><div class="floating-key key-red">ALT</div></div>
     </div>
 
-    <div id="user-header">
-        <div></div> 
-        <div class="header-right">
-            <a href="account.html" class="header-btn" style="color: white;">Account</a>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <img id="display-avatar" src="" alt="Avatar" style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--primary-neon); background: rgba(255,255,255,0.05);">
-                <span id="display-gamertag" style="color: #a5b4fc; font-weight: bold; font-size: 1rem;"></span>
-            </div>
-            <button class="header-btn logout-btn" onclick="logout()">Disconnect</button>
+    <div class="profile-dropdown">
+        <img id="display-avatar" src="" alt="Avatar" class="profile-avatar">
+        <div class="dropdown-content">
+            <div class="dropdown-header" id="display-gamertag"></div>
+            <a href="account.html" class="dropdown-item">Account Settings</a>
+            <button onclick="logout()" class="dropdown-item logout-text">Disconnect</button>
         </div>
     </div>
 
     <div id="ui-container">
-        <h1 class="arcade-title" style="font-size: 3.5rem; margin-bottom: 0;">TURBO TYPE</h1>
-        <p class="subtitle" style="margin-top: 10px;">SELECT INITIALIZATION PROTOCOL</p>
+        <h1 class="arcade-title" style="font-size: 3rem; margin-bottom: 0;">TURBO TYPE</h1>
+        <p class="subtitle" style="margin-top: 10px; font-size: 0.9rem;">SELECT INITIALIZATION PROTOCOL</p>
 
         <div class="menu">
-            <!-- Neon Royale moved to the top and spanning the width -->
-            <a href="neon_royale.html" class="card royale" style="grid-column: 1 / -1;">
+            <a href="neon_royale.html" class="card neon card-full">
                 <h2 style="color: #06b6d4;">Neon Royale</h2>
-                <span class="tag online">10-PLAYER BATTLE ROYALE</span>
-                <p>Survive 9 rounds of typing combat. Last pilot standing wins.</p>
+                <span class="tag online" style="background: rgba(6, 182, 212, 0.1); color: #06b6d4; border: 1px solid #06b6d4;">10-PLAYER ROYALE</span>
+                <p>Survive the elimination matrix.</p>
             </a>
 
-            <a href="samurai_game.html" class="card samurai">
-                <h2 style="color: #60a5fa;">Samurai Survival</h2>
-                <span class="tag online">SOLO CAMPAIGN</span>
-                <p>Adaptive difficulty combat loop.</p>
-            </a>
+            <div class="grid-2x2">
+                <a href="samurai_game.html" class="card samurai">
+                    <h2 style="color: #60a5fa;">Samurai Survival</h2>
+                    <span class="tag online" style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid #3b82f6;">SOLO CAMPAIGN</span>
+                    <p>Adaptive difficulty combat loop.</p>
+                </a>
 
-            <a href="turbo_racing.html" class="card racing">
-                <h2 style="color: #fbbf24;">Turbo Racing</h2>
-                <span class="tag local">PvP MULTIPLAYER</span>
-                <p>AI-driven competitive tracks.</p>
-            </a>
+                <a href="turbo_racing.html" class="card racing">
+                    <h2 style="color: #fbbf24;">Turbo Racing</h2>
+                    <span class="tag local">PvP MULTIPLAYER</span>
+                    <p>AI-driven competitive tracks.</p>
+                </a>
 
-            <a href="syntax_arena.html" class="card syntax">
-                <h2 style="color: #34d399;">Syntax Arena</h2>
-                <span class="tag online">PvP MULTIPLAYER</span>
-                <p>Strict-Mode C++ Hacker Battles.</p>
-            </a>
+                <a href="syntax_arena.html" class="card syntax">
+                    <h2 style="color: #34d399;">Syntax Arena</h2>
+                    <span class="tag online">PvP MULTIPLAYER</span>
+                    <p>Strict-Mode C++ Hacker Battles.</p>
+                </a>
 
-            <a href="colosseum.html" class="card raid">
-                <h2 style="color: #fb7185;">Colosseum Raid</h2>
-                <span class="tag online">PvE CO-OP</span>
-                <p>Type Lore to Slay the Global Boss.</p>
-            </a>
+                <a href="colosseum.html" class="card raid">
+                    <h2 style="color: #fb7185;">Colosseum Raid</h2>
+                    <span class="tag online" style="background: rgba(225, 29, 72, 0.1); color: #fb7185; border: 1px solid #e11d48;">PvE CO-OP</span>
+                    <p>Type Lore to Slay the Global Boss.</p>
+                </a>
+            </div>
+
+            <div class="learn-container-gap">
+                <a href="turbo_learn.html" class="card learn card-full">
+                    <h2 style="color: #a855f7;">Turbo Learn</h2>
+                    <span class="tag online" style="background: rgba(168, 85, 247, 0.1); color: #c084fc; border: 1px solid #a855f7;">TRAINING DOJO</span>
+                    <p>Master the home row and build foundational muscle memory.</p>
+                </a>
+            </div>
         </div>
+
+        <footer class="credits-footer">
+            <p>Developed by <span class="creators">Aman Adil, Amit Sahu & Anupam Sharma</span></p>
+            <p><span class="solidarity">Team TurboType stands for peace. Say no to war.</span></p>
+        </footer>
     </div>
 
     <script>
-        // Floating Keys Interaction
         document.addEventListener('mousemove', (e) => {
             const keys = document.querySelectorAll('.floating-key');
             keys.forEach(key => {
@@ -125,7 +189,6 @@
             });
         });
 
-        // Hub Logic & Auto-Reconnect
         if (localStorage.getItem('token')) {
             const activeRoomUrl = localStorage.getItem('activeRoomUrl');
             if (activeRoomUrl) {
@@ -134,7 +197,6 @@
             }
         }
         
-        // Load User Data & Avatar into Header
         let avatarUrl = localStorage.getItem('avatar');
         if (avatarUrl && !avatarUrl.startsWith('http')) {
             avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=Bot${avatarUrl}`;

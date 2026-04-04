@@ -16,10 +16,11 @@ const userSchema = new mongoose.Schema({
     games: {
         turboRacing: { played: { type: Number, default: 0 }, wins: { type: Number, default: 0 } },
         samuraiTyping: { played: { type: Number, default: 0 }, highestWave: { type: Number, default: 0 } },
-        // --- NEW GAMES ADDED ---
         syntaxArena: { played: { type: Number, default: 0 }, wins: { type: Number, default: 0 } },
-        colosseumRaid: { played: { type: Number, default: 0 }, totalDamage: { type: Number, default: 0 } }
+        colosseumRaid: { played: { type: Number, default: 0 }, totalDamage: { type: Number, default: 0 } },
+        // NEW NEON ROYALE TRACKING
+        neonRoyale: { played: { type: Number, default: 0 }, wins: { type: Number, default: 0 } }
     }
 });
 
-module.exports = mongoose.model('User', userSchema);    
+module.exports = mongoose.model('User', userSchema);
