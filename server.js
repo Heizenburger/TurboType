@@ -37,31 +37,38 @@ if (!EMAIL_API_KEY) {
     console.log("📧 HTTP Email API Configured Successfully.");
 }
 
-// Reusable fetch wrapper for sending emails via Resend's API
+// --- 100% FREE GOOGLE SCRIPT EMAIL SETUP ---
+const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL;
+
+if (!GOOGLE_SCRIPT_URL) {
+    console.warn("\n⚠️ WARNING: No GOOGLE_SCRIPT_URL found in .env or Render dashboard.");
+    console.warn("📧 Email Simulation Mode Active: OTPs and Passwords will print here.\n");
+} else {
+    console.log("📧 Google Script Mailer Configured Successfully.");
+}
+
+// Wrapper for sending emails via your free Google Apps Script Bridge
 async function sendEmailHTTP(to, subject, text) {
-    if (!EMAIL_API_KEY) {
+    if (!GOOGLE_SCRIPT_URL) {
         console.log(`\n[EMAIL SIMULATION] Sent to: ${to}\nSubject: ${subject}\nBody:\n${text}\n`);
         return true;
     }
 
     try {
-        const response = await fetch('https://api.resend.com/emails', {
+        const response = await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${EMAIL_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
+            // Note: Google Scripts handles CORS better with plain text bodies containing JSON
+            headers: { 'Content-Type': 'text/plain' }, 
             body: JSON.stringify({
-                from: SENDER_EMAIL,
                 to: to,
                 subject: subject,
                 text: text
             })
         });
 
-        if (!response.ok) {
-            const errorData = await response.text();
-            throw new Error(`Email API failed: ${errorData}`);
+        const result = await response.json();
+        if (result.status === "error") {
+            throw new Error(`Google Script failed: ${result.message}`);
         }
         return true;
     } catch (error) {
