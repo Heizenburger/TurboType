@@ -479,6 +479,8 @@ io.on('connection', (socket) => {
         if (room && room.players[socket.id]) {
             room.players[socket.id].progress = data.progress;
             room.players[socket.id].wpm = data.wpm;
+            room.players[socket.id].isNitro = data.isNitro;
+            room.players[socket.id].isSpinning = data.isSpinning;
             socket.to(data.roomCode).emit('opponentProgress', data);
         }
     });
@@ -523,6 +525,14 @@ io.on('connection', (socket) => {
                     const pIds = Object.keys(room.players);
                     const minScore = Math.min(room.players[pIds[0]].skillScore, room.players[pIds[1]].skillScore);
                     let diffLevel = minScore < 250 ? 1 : (minScore >= 700 ? 3 : 2);
+
+                    // FIX: Reset player stats server-side so the new race correctly starts at 0%
+                    for (let pId of pIds) {
+                        room.players[pId].progress = 0;
+                        room.players[pId].wpm = 0;
+                        room.players[pId].isNitro = false;
+                        room.players[pId].isSpinning = false;
+                    }
 
                     const text = await generateTypingText(diffLevel, room.raceLength || 2);
                     room.status = 'playing';

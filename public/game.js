@@ -3,6 +3,7 @@ let playerName = localStorage.getItem('gamertag') || "PLAYER";
 let currentRoomCode = null;
 let isRacing = false;
 let hasFinished = false; 
+let amIWinner = false;
 let gameplayEventTimeout;
 
 // --- STAT & GAME TRACKING ---
@@ -19,61 +20,150 @@ let displayMyWPM = 0, displayOppWPM = 0;
 let consecutiveCorrectWords = 0;
 let currentWordErrors = 0;
 let isNitroActive = false;
+let opponentNitro = false;
+let opponentSpinning = false;
 
 // TRACK HAZARDS
 let hazardIndices = new Set();
 let currentWordHazardFailed = false;
 let activePenaltyUntil = 0;
 
-// PARALLAX ANIMATION HANDLES
-let skyAnim, cityAnim, roadAnim;
+// ==========================================
+// --- NEW PARALLAX ENGINE (PHASES 2-4)   ---
+// ==========================================
+let bgSpeed = 0;
+let p1TireRotation = 0;
+let p2TireRotation = 0;
+let carBouncePhase = 0;
+let currentP1X = 0;
+let currentP2X = 0;
+let animationFrameId;
 
-// --- DOM BASED RENDER LOOP ---
+const parallaxLayers = [
+    { id: 'layer-mountains', mult: 0.1, pos: 0, el: null },
+    { id: 'layer-city', mult: 0.35, pos: 0, el: null },
+    { id: 'layer-lines', mult: 1.8, pos: 0, el: null }
+];
+
 function initAnimations() {
-    const sky = document.getElementById('bg-sky');
-    const city = document.getElementById('bg-city');
-    const road = document.getElementById('bg-road');
-
-    if(!skyAnim) {
-        skyAnim = sky.animate([{ backgroundPosition: '0px 0px' }, { backgroundPosition: '-1000px 0px' }], { duration: 60000, iterations: Infinity });
-        cityAnim = city.animate([{ backgroundPosition: '0px 0px' }, { backgroundPosition: '-2000px 0px' }], { duration: 20000, iterations: Infinity });
-        roadAnim = road.animate([{ backgroundPosition: '0px 0px' }, { backgroundPosition: '-2000px 0px' }], { duration: 4000, iterations: Infinity });
-        requestAnimationFrame(gameLoop);
+    parallaxLayers.forEach(l => l.el = document.getElementById(l.id));
+    if(!animationFrameId) {
+        animationFrameId = requestAnimationFrame(gameLoop);
     }
-
-    skyAnim.playbackRate = 0; cityAnim.playbackRate = 0; roadAnim.playbackRate = 0;
 }
 
 function gameLoop() {
     if (isRacing) {
-        const p1El = document.getElementById('p1-car');
-        const p2El = document.getElementById('p2-car');
-        
-        p1El.style.left = `calc(5vw + ${latestMyProgress * 80}vw)`;
-        p2El.style.left = `calc(5vw + ${latestOpponentProgress * 80}vw)`;
-
-        // Calculate active hazard physics (Visuals ONLY, WPM is pure math now)
-        let hazardSpeedMultiplier = 1;
-        if (Date.now() < activePenaltyUntil) {
-            hazardSpeedMultiplier = 0.2; // Visual slow down for spin out
-        }
+        bgSpeed = 25; 
 
         displayMyWPM += (currentWPM - displayMyWPM) * 0.1;
         displayOppWPM += (opponentWPM - displayOppWPM) * 0.1;
 
-        document.getElementById('p1-wpm-tag').innerText = Math.round(displayMyWPM) + ' WPM';
-        document.getElementById('p2-wpm-tag').innerText = Math.round(displayOppWPM) + ' WPM';
+        const p1WpmEl = document.getElementById('p1-wpm-tag');
+        const p2WpmEl = document.getElementById('p2-wpm-tag');
+        if(p1WpmEl) p1WpmEl.innerText = Math.round(displayMyWPM) + ' WPM';
+        if(p2WpmEl) p2WpmEl.innerText = Math.round(displayOppWPM) + ' WPM';
 
-        const visualNitroBoost = document.getElementById('p1-car').classList.contains('nitro-active') ? 2.5 : 1;
-        const targetRate = currentWPM > 0 ? (0.3 + (currentWPM / 60)) * visualNitroBoost * hazardSpeedMultiplier : 0;
+        let hazardSpeedMultiplier = Date.now() < activePenaltyUntil ? 0.2 : 1;
+        let p1Speed = (bgSpeed + (currentWPM * 0.1)) * hazardSpeedMultiplier;
+        let p2Speed = bgSpeed + (opponentWPM * 0.1);
+
+        p1TireRotation = (p1TireRotation + p1Speed * 4) % 360;
+        p2TireRotation = (p2TireRotation + p2Speed * 4) % 360;
+
+        const p1Tires = [document.getElementById('p1-tire-back'), document.getElementById('p1-tire-front')];
+        const p2Tires = [document.getElementById('p2-tire-back'), document.getElementById('p2-tire-front')];
+        p1Tires.forEach(t => t && (t.style.transform = `rotate(${p1TireRotation}deg)`));
+        p2Tires.forEach(t => t && (t.style.transform = `rotate(${p2TireRotation}deg)`));
+
+        carBouncePhase += 0.5;
+        const bounceY = Math.sin(carBouncePhase) * 1.2;
         
-        cityAnim.playbackRate += (targetRate - cityAnim.playbackRate) * 0.1;
-        roadAnim.playbackRate += (targetRate - roadAnim.playbackRate) * 0.1;
-        skyAnim.playbackRate = cityAnim.playbackRate * 0.5;
-    } else if (skyAnim) {
-        cityAnim.playbackRate *= 0.9; roadAnim.playbackRate *= 0.9; skyAnim.playbackRate *= 0.9;
+        // Calculate difference in WPM for immediate physical responsiveness
+        let wpmDiff = currentWPM - opponentWPM;
+        
+        // Calculate difference in actual text progress to ensure the true leader is visually ahead
+        let progressDiff = (latestMyProgress - latestOpponentProgress) * 600; 
+
+        // Blend them together and use a wider boundary (-400 to 400)
+        // This guarantees the opponent car (starting at 5vw) can bridge the gap and overtake the player (starting at 15vw)
+        let combinedDiff = (wpmDiff * 3.5) + progressDiff;
+        let cappedDiff = Math.max(-400, Math.min(400, combinedDiff)); 
+
+        let targetP1X = cappedDiff;
+        let targetP2X = -cappedDiff;
+
+        if (isNitroActive) targetP1X += 80;
+        if (Date.now() < activePenaltyUntil) targetP1X -= 80;
+
+        if (opponentNitro) targetP2X += 80;
+        if (opponentSpinning) targetP2X -= 80;
+
+        currentP1X += (targetP1X - currentP1X) * 0.05;
+        currentP2X += (targetP2X - currentP2X) * 0.05;
+
+        const p1Container = document.getElementById('p1-car');
+        const p2Container = document.getElementById('p2-car');
+        
+        if (p1Container) p1Container.style.transform = `translate(${currentP1X}px, ${bounceY}px)`;
+        if (p2Container) p2Container.style.transform = `translate(${currentP2X}px, ${bounceY * 0.8}px)`;
+
+        if (isNitroActive && p1Container) p1Container.classList.add('nitro-active');
+        else if (p1Container) p1Container.classList.remove('nitro-active');
+
+        if (opponentNitro && p2Container) p2Container.classList.add('nitro-active');
+        else if (p2Container) p2Container.classList.remove('nitro-active');
+
+        parallaxLayers.forEach(layer => {
+            if(layer.el) {
+                layer.pos -= bgSpeed * layer.mult;
+                layer.el.style.backgroundPositionX = `${layer.pos % 10000}px`;
+            }
+        });
+
+    } else if (hasFinished) {
+        bgSpeed *= 0.95; 
+        if (bgSpeed < 0.1) bgSpeed = 0;
+        
+        if (amIWinner) {
+            currentP1X += 25; 
+            currentP2X -= 15; 
+            p1TireRotation = (p1TireRotation + 40) % 360; 
+            p2TireRotation = (p2TireRotation + bgSpeed * 4) % 360; 
+        } else {
+            currentP2X += 25; 
+            currentP1X -= 15; 
+            p2TireRotation = (p2TireRotation + 40) % 360;
+            p1TireRotation = (p1TireRotation + bgSpeed * 4) % 360;
+        }
+
+        const p1Container = document.getElementById('p1-car');
+        const p2Container = document.getElementById('p2-car');
+        let finishBounceY = bgSpeed > 5 ? Math.sin(carBouncePhase) * 1.2 : 0;
+
+        if (p1Container) p1Container.style.transform = `translate(${currentP1X}px, ${finishBounceY}px)`;
+        if (p2Container) p2Container.style.transform = `translate(${currentP2X}px, ${finishBounceY * 0.8}px)`;
+
+        if (isNitroActive && p1Container) p1Container.classList.add('nitro-active');
+        else if (p1Container) p1Container.classList.remove('nitro-active');
+
+        if (opponentNitro && p2Container) p2Container.classList.add('nitro-active');
+        else if (p2Container) p2Container.classList.remove('nitro-active');
+
+        const p1Tires = [document.getElementById('p1-tire-back'), document.getElementById('p1-tire-front')];
+        const p2Tires = [document.getElementById('p2-tire-back'), document.getElementById('p2-tire-front')];
+        p1Tires.forEach(t => t && (t.style.transform = `rotate(${p1TireRotation}deg)`));
+        p2Tires.forEach(t => t && (t.style.transform = `rotate(${p2TireRotation}deg)`));
+
+        parallaxLayers.forEach(layer => {
+            if(layer.el) {
+                layer.pos -= bgSpeed * layer.mult;
+                layer.el.style.backgroundPositionX = `${layer.pos % 10000}px`;
+            }
+        });
     }
-    requestAnimationFrame(gameLoop);
+
+    animationFrameId = requestAnimationFrame(gameLoop);
 }
 
 // --- ROOM MANAGEMENT ---
@@ -130,25 +220,21 @@ socket.on('matchStart', (data) => {
 
 socket.on('rejoinSuccess', (data) => {
     localStorage.setItem('activeRoomUrl', window.location.href);
+    document.getElementById('end-screen').style.display = 'none'; // FIX: Ensures modal closes for rematch!
+    
     setupGameScreen(data);
-    const playersArray = Array.isArray(data.players) ? data.players : Object.values(data.players);
-    const me = playersArray.find(p => p.name === playerName);
-    const opp = playersArray.find(p => p.name !== playerName);
     
-    if (me) { currentWordIndex = Math.round(me.progress * words.length); latestMyProgress = me.progress; currentWPM = me.wpm; }
-    if (opp) { latestOpponentProgress = opp.progress; opponentWPM = opp.wpm; }
-    if (opp && opp.wpm > 100) document.getElementById('p2-car').classList.add('nitro-active'); 
+    // Ensure everything resets correctly and the cars sit back at the start line
+    isRacing = false;
+    currentP1X = 0; currentP2X = 0;
     
-    hasFinished = false; isRacing = true; totalTyped = 0; startTime = Date.now(); lastWordCompleteTime = Date.now();
-    consecutiveCorrectWords = 0; currentWordErrors = 0; 
-    currentWordHazardFailed = false; activePenaltyUntil = 0; 
+    const p1Container = document.getElementById('p1-car');
+    const p2Container = document.getElementById('p2-car');
+    if (p1Container) { p1Container.classList.remove('nitro-active'); p1Container.style.transform = `translate(0px, 0px)`; }
+    if (p2Container) { p2Container.classList.remove('nitro-active'); p2Container.style.transform = `translate(0px, 0px)`; }
     
-    generateHazards(); // Regenerate hazards based on the word length
-    
-    document.getElementById('timer-overlay').style.display = 'none';
-    document.getElementById('words-left-count').innerText = words.length - currentWordIndex;
-    
-    renderText(); enableKeyboard();
+    // Trigger the 5 second countdown before the race logic officially triggers
+    startCountdown();
 });
 
 function setupGameScreen(data) {
@@ -192,10 +278,10 @@ function setupGameScreen(data) {
 
 function generateHazards() {
     hazardIndices.clear();
-    let nextHazard = 5 + Math.floor(Math.random() * 5); // Skip the very first words
+    let nextHazard = 5 + Math.floor(Math.random() * 5); 
     while (nextHazard < words.length - 2) {
         hazardIndices.add(nextHazard);
-        nextHazard += 8 + Math.floor(Math.random() * 7); // A hazard roughly every 8 to 14 words
+        nextHazard += 8 + Math.floor(Math.random() * 7); 
     }
 }
 
@@ -209,15 +295,16 @@ function startCountdown() {
 }
 
 function beginRace() {
-    hasFinished = false; isRacing = true; startTime = Date.now(); lastWordCompleteTime = Date.now();
+    hasFinished = false; amIWinner = false; isRacing = true; 
+    startTime = Date.now(); lastWordCompleteTime = Date.now();
     totalTyped = 0; currentWordIndex = 0; latestMyProgress = 0; latestOpponentProgress = 0; 
     currentWPM = 0; opponentWPM = 0; consecutiveCorrectWords = 0; currentWordErrors = 0;
     
-    currentWordHazardFailed = false;
-    activePenaltyUntil = 0;
+    currentP1X = 0; currentP2X = 0;
+    currentWordHazardFailed = false; activePenaltyUntil = 0;
     
-    displayMyWPM = 0; 
-    displayOppWPM = 0; 
+    displayMyWPM = 0; displayOppWPM = 0; 
+    isNitroActive = false; opponentNitro = false; opponentSpinning = false;
     
     document.getElementById('p1-car').classList.remove('nitro-active');
     document.getElementById('p2-car').classList.remove('nitro-active'); 
@@ -245,7 +332,7 @@ function showGameplayEvent(text, color) {
     el.style.textShadow = `0 0 15px ${color}`;
     
     el.classList.remove('show');
-    void el.offsetWidth; // Clean animation reset
+    void el.offsetWidth; 
     el.classList.add('show');
     
     clearTimeout(gameplayEventTimeout);
@@ -263,54 +350,46 @@ function handleTyping(e) {
 
     liveBox.innerText = val;
 
-    // --- TYPO DETECTED ---
     if (!currentWord.startsWith(val.trim())) {
         currentWordEl.classList.add('error'); currentWordEl.classList.remove('active');
         liveBox.style.borderColor = '#ef4444'; liveBox.style.color = '#ef4444';
         
         currentWordErrors++;
         consecutiveCorrectWords = 0; 
-        document.getElementById('p1-car').classList.remove('nitro-active');
         isNitroActive = false;
 
-        // THE SPIN-OUT HAZARD PENALTY!
         if (hazardIndices.has(currentWordIndex) && !currentWordHazardFailed) {
             currentWordHazardFailed = true;
             activePenaltyUntil = Date.now() + 1000; 
             
-            // STRICT PENALTY: Push progress back by 3 words!
             const wordsToDrop = Math.min(3, currentWordIndex);
             for (let i = 0; i < wordsToDrop; i++) {
                 currentWordIndex--;
                 totalTyped -= (words[currentWordIndex].length + 1);
             }
-            currentWordHazardFailed = false; // Reset to allow re-attempt
+            currentWordHazardFailed = false;
 
             document.getElementById('race-track').classList.add('spin-out');
             setTimeout(() => document.getElementById('race-track').classList.remove('spin-out'), 500);
             showGameplayEvent("💥 SPIN OUT! (-3 WORDS)", "#ef4444");
             
-            // Re-render UI to show physical penalty
             e.target.value = ""; 
             liveBox.innerText = "";
             renderText(); 
             
-            // Recalculate WPM immediately to reflect lost progress
             const timeElapsed = Math.max(0.1, (Date.now() - startTime) / 60000); 
             currentWPM = Math.round((totalTyped / 5) / timeElapsed) || 0;
             latestMyProgress = currentWordIndex / words.length;
             
-            socket.emit('updateProgress', { roomCode: currentRoomCode, name: playerName, progress: latestMyProgress, wpm: currentWPM });
-            return; // Halt logic to let user recover
+            socket.emit('updateProgress', { roomCode: currentRoomCode, name: playerName, progress: latestMyProgress, wpm: currentWPM, isNitro: isNitroActive, isSpinning: true });
+            return; 
         }
 
-    // --- TYPING IS CORRECT ---
     } else {
         currentWordEl.classList.remove('error'); currentWordEl.classList.add('active');
         liveBox.style.borderColor = isNitroActive ? '#3b82f6' : '#64748b'; liveBox.style.color = 'white';
     }
 
-    // --- WORD IS COMPLETED ---
     if (val.endsWith(" ")) {
         if (val.trim() === currentWord) {
             let now = Date.now(); let wordTimeMins = Math.max(0.001, (now - lastWordCompleteTime) / 60000);
@@ -319,14 +398,12 @@ function handleTyping(e) {
             lastWordCompleteTime = now; 
             
             totalTyped += currentWord.length + 1; 
-            let wordJumpBonus = 0; // Words to skip
+            let wordJumpBonus = 0; 
             
-            // Nitro Trigger
             if (currentWordErrors === 0) {
                 consecutiveCorrectWords++;
                 if (consecutiveCorrectWords > 0 && consecutiveCorrectWords % 5 === 0) {
                     isNitroActive = true;
-                    document.getElementById('p1-car').classList.add('nitro-active');
                     showGameplayEvent("🚀 NITRO BOOST! (+1 WORD)", "#3b82f6"); 
                     wordJumpBonus += 1;
                 }
@@ -334,7 +411,6 @@ function handleTyping(e) {
                 consecutiveCorrectWords = 0; currentWordErrors = 0;
             }
 
-            // Hazard Cleared Trigger
             if (hazardIndices.has(currentWordIndex)) {
                 if (!currentWordHazardFailed) {
                     showGameplayEvent("⚡ HAZARD CLEARED! (+2 WORDS)", "#facc15");
@@ -343,11 +419,9 @@ function handleTyping(e) {
                 currentWordHazardFailed = false; 
             }
 
-            // Clear current word UI
             currentWordEl.classList.remove('current', 'active', 'error'); currentWordEl.classList.add('correct');
             currentWordIndex++; e.target.value = ""; liveBox.innerText = "";
             
-            // APPLY JUMP BONUSES (Skips words in the array and counts them as typed)
             for (let i = 0; i < wordJumpBonus; i++) {
                 if (currentWordIndex < words.length) {
                     let skippedWord = words[currentWordIndex];
@@ -361,7 +435,6 @@ function handleTyping(e) {
                 }
             }
 
-            // Pure WPM Recalculation (No artificial multipliers!)
             const timeElapsed = Math.max(0.1, (Date.now() - startTime) / 60000);
             currentWPM = Math.round((totalTyped / 5) / timeElapsed) || 0;
             
@@ -373,7 +446,7 @@ function handleTyping(e) {
             }
             
             latestMyProgress = currentWordIndex / words.length;
-            socket.emit('updateProgress', { roomCode: currentRoomCode, name: playerName, progress: latestMyProgress, wpm: currentWPM });
+            socket.emit('updateProgress', { roomCode: currentRoomCode, name: playerName, progress: latestMyProgress, wpm: currentWPM, isNitro: isNitroActive, isSpinning: false });
             updateScroll(); 
             
             if (currentWordIndex >= words.length) finishRace(true);
@@ -390,10 +463,11 @@ function updateScroll() {
 }
 
 socket.on('opponentProgress', (data) => {
-    latestOpponentProgress = data.progress; opponentWPM = data.wpm;
-    if (data.wpm > 100) document.getElementById('p2-car').classList.add('nitro-active');
-    else document.getElementById('p2-car').classList.remove('nitro-active');
-
+    latestOpponentProgress = data.progress; 
+    opponentWPM = data.wpm;
+    opponentNitro = data.isNitro || false;
+    opponentSpinning = data.isSpinning || false;
+    
     if (data.progress >= 1 && isRacing) finishRace(false);
 });
 
@@ -415,45 +489,61 @@ async function finishRace(isWinner, customMsg = null) {
     if (hasFinished) return;
     hasFinished = true;
     isRacing = false;
+    amIWinner = isWinner;
+
+    if (isWinner) {
+        isNitroActive = true;
+        opponentNitro = false;
+    } else {
+        isNitroActive = false;
+        opponentNitro = true;
+    }
+
     document.getElementById('hidden-type-input').disabled = true;
     localStorage.removeItem('activeRoomUrl');
-
-    if(skyAnim) { cityAnim.playbackRate = 0; roadAnim.playbackRate = 0; skyAnim.playbackRate = 0; }
 
     const time = Math.max(0.1, (Date.now() - startTime) / 60000);
     const wpm = Math.round((totalTyped / 5) / time) || 0;
     const acc = Math.max(0, Math.round(((totalKeystrokes - errors) / Math.max(1, totalKeystrokes)) * 100)) || 0;
 
-    document.getElementById('game-ui').style.display = 'flex'; 
-    const endModal = document.getElementById('end-screen'); 
-    endModal.style.display = 'flex';
-    
-    document.getElementById('result-banner').innerText = isWinner ? "🏆 VICTORY!" : "🏳️ DEFEAT";
-    document.getElementById('result-banner').style.color = isWinner ? "#f59e0b" : "#ef4444";
-    
-    document.getElementById('final-wpm').innerText = wpm;
-    document.getElementById('final-acc').innerText = acc;
-    document.getElementById('final-burst').innerText = peakBurstWPM;
+    setTimeout(async () => {
+        document.getElementById('game-ui').style.display = 'flex'; 
+        const endModal = document.getElementById('end-screen'); 
+        endModal.style.display = 'flex';
+        
+        document.getElementById('result-banner').innerText = isWinner ? "🏆 VICTORY!" : "🏳️ DEFEAT";
+        document.getElementById('result-banner').style.color = isWinner ? "#f59e0b" : "#ef4444";
+        
+        document.getElementById('final-wpm').innerText = wpm;
+        document.getElementById('final-acc').innerText = acc;
+        document.getElementById('final-burst').innerText = peakBurstWPM;
 
-    if (customMsg) document.getElementById('save-status').innerText = customMsg + " Saving Data...";
-    else document.getElementById('save-status').innerText = "Saving Data...";
+        if (customMsg) document.getElementById('save-status').innerText = customMsg + " Saving Data...";
+        else document.getElementById('save-status').innerText = "Saving Data...";
 
-    try {
-        await fetch('/api/game/end', {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-            body: JSON.stringify({ gameMode: 'turboRacing', wpm: wpm, accuracy: acc, burstSpeed: peakBurstWPM, score: isWinner ? 1 : 0 })
-        });
-        document.getElementById('save-status').innerText = customMsg ? customMsg + " (Saved!)" : "Data Saved to Server!";
-        document.getElementById('save-status').style.color = "#10b981";
-    } catch (err) { 
-        document.getElementById('save-status').innerText = "Offline: Stats not saved."; 
-        document.getElementById('save-status').style.color = "#ef4444"; 
-    }
+        try {
+            await fetch('/api/game/end', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify({ gameMode: 'turboRacing', wpm: wpm, accuracy: acc, burstSpeed: peakBurstWPM, score: isWinner ? 1 : 0 })
+            });
+            document.getElementById('save-status').innerText = customMsg ? customMsg + " (Saved!)" : "Data Saved to Server!";
+            document.getElementById('save-status').style.color = "#10b981";
+        } catch (err) { 
+            document.getElementById('save-status').innerText = "Offline: Stats not saved."; 
+            document.getElementById('save-status').style.color = "#ef4444"; 
+        }
+    }, 1500); 
 }
 
 socket.on('opponentDisconnected', (data) => {
-    document.getElementById('connection-alert').innerText = `${data.name} DISCONNECTED. WAITING 60s FOR RECONNECT...`;
-    document.getElementById('connection-alert').style.display = 'block';
+    // If the opponent leaves while the game screen is active and not finished, auto-win!
+    if (!hasFinished && document.getElementById('game-ui').style.display === 'flex') {
+        finishRace(true, "Opponent abandoned the race.");
+        document.getElementById('connection-alert').style.display = 'none';
+    } else {
+        document.getElementById('connection-alert').innerText = `${data.name} DISCONNECTED.`;
+        document.getElementById('connection-alert').style.display = 'block';
+    }
 });
 socket.on('opponentReconnected', (data) => { document.getElementById('connection-alert').style.display = 'none'; });
 
@@ -521,8 +611,6 @@ window.addEventListener('DOMContentLoaded', () => {
         joinExistingRoom();
     }
 
-    // --- ANTI-CHEAT MECHANISMS ---
-    // 1. Prevent text selection, right-clicks, and copying from the paragraph
     const textWindow = document.getElementById('text-window');
     if (textWindow) {
         textWindow.style.userSelect = 'none';
@@ -531,7 +619,6 @@ window.addEventListener('DOMContentLoaded', () => {
         textWindow.addEventListener('contextmenu', e => e.preventDefault());
     }
 
-    // 2. Prevent pasting or dropping text directly into the typing input
     const typeInput = document.getElementById('hidden-type-input');
     if (typeInput) {
         typeInput.addEventListener('paste', e => e.preventDefault());
