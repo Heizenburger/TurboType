@@ -47,9 +47,9 @@
         .card p { font-size: 0.85rem !important; margin-top: 5px !important; color: #cbd5e1; }
         .card-full { width: 100%; }
         
-        /* --- UI TWEAKS: Pushed down & Base Borders --- */
-        .learn-container-gap { margin-top: 40px; } 
-        
+        .learn-container-gap { margin-top: 20px; } 
+
+        /* --- RESTORED BASE BORDERS --- */
         .card.neon { border-color: rgba(6, 182, 212, 0.4); }
         .card.learn { border-color: rgba(168, 85, 247, 0.4); }
 
@@ -73,14 +73,7 @@
         .dropdown-item.logout-text:hover { background: rgba(239, 68, 68, 0.1); color: var(--danger-neon, #ef4444); }
         
         /* --- TEAM CREDITS FOOTER --- */
-        .credits-footer {
-            text-align: center;
-            margin-top: 40px;
-            padding-bottom: 30px;
-            font-family: monospace;
-            font-size: 0.85rem;
-            color: #64748b;
-        }
+        .credits-footer { text-align: center; margin-top: 40px; padding-bottom: 30px; font-family: monospace; font-size: 0.85rem; color: #64748b; }
         .credits-footer span.creators { color: #94a3b8; font-weight: bold; }
         .credits-footer span.solidarity { color: #10b981; font-weight: bold; letter-spacing: 1px; }
 
@@ -198,8 +191,9 @@
         }
         
         let avatarUrl = localStorage.getItem('avatar');
+        // FIX: Re-applied the fix to remove "Bot" from the URL path.
         if (avatarUrl && !avatarUrl.startsWith('http')) {
-            avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=Bot${avatarUrl}`;
+            avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${avatarUrl}`;
         }
         
         document.getElementById('display-avatar').src = avatarUrl;
