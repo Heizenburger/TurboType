@@ -6,340 +6,902 @@
     <link rel="stylesheet" href="racing_theme.css" />
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        if (!localStorage.getItem('token')) window.location.href = 'index.html?redirect=' + encodeURIComponent(window.location.href);
+      if (!localStorage.getItem("token"))
+        window.location.href =
+          "index.html?redirect=" + encodeURIComponent(window.location.href);
     </script>
     <style>
-        :root {
-            --racing-yellow: #facc15;
-            --racing-orange: #f59e0b;
-        }
+      :root {
+        --racing-yellow: #facc15;
+        --racing-orange: #f59e0b;
+      }
 
-        /* --- ERADICATE THE BLUE BACKGROUND --- */
-        body {
-            background: #050505 !important;
-            margin: 0;
-            overflow-x: hidden;
-        }
+      /* --- ERADICATE THE BLUE BACKGROUND --- */
+      body {
+        background: #050505 !important;
+        margin: 0;
+        overflow-x: hidden;
+      }
 
-        /* --- HYPER-SPEED BACKGROUND --- */
-        .speed-bg {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: radial-gradient(circle at center, #1f180d 0%, #050505 100%) !important;
-            z-index: -1; overflow: hidden;
+      /* --- HYPER-SPEED BACKGROUND (Behind modals/UI) --- */
+      .speed-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: radial-gradient(
+          circle at center,
+          #1f180d 0%,
+          #050505 100%
+        ) !important;
+        z-index: -1;
+        overflow: hidden;
+      }
+      .speed-line {
+        position: absolute;
+        height: 2px;
+        width: 250px;
+        opacity: 0;
+        animation: speedFly linear infinite;
+      }
+      @keyframes speedFly {
+        0% {
+          transform: translateX(-300px);
+          opacity: 0;
         }
-        .speed-line {
-            position: absolute;
-            height: 2px;
-            width: 250px;
-            opacity: 0;
-            animation: speedFly linear infinite;
+        10% {
+          opacity: 0.6;
         }
-        @keyframes speedFly {
-            0% { transform: translateX(-300px); opacity: 0; }
-            10% { opacity: 0.6; }
-            90% { opacity: 0.6; }
-            100% { transform: translateX(110vw); opacity: 0; }
+        90% {
+          opacity: 0.6;
         }
+        100% {
+          transform: translateX(110vw);
+          opacity: 0;
+        }
+      }
 
-        /* Override the blue Parallax Track from racing_theme.css */
-        #race-track {
-            background: linear-gradient(to bottom, #2a1200 0%, #050505 100%) !important;
-            border-bottom: 4px solid var(--racing-orange) !important;
-        }
-        .layer-road {
-            background: linear-gradient(to bottom, transparent 80%, #1a150b 80%, #050505 100%) !important;
-        }
+      /* --- GLASSMORPHIC PANELS --- */
+      .glass-panel {
+        background: rgba(10, 10, 10, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(250, 204, 21, 0.15);
+      }
 
-        /* --- GLASSMORPHIC PANELS --- */
-        .glass-panel {
-            background: rgba(10, 10, 10, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(250, 204, 21, 0.15);
-        }
+      .room-box {
+        background: rgba(0, 0, 0, 0.6);
+        padding: 15px;
+        border-radius: 8px;
+        flex: 1;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
 
-        .room-box { background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; flex: 1; border: 1px solid rgba(255,255,255,0.05); }
-        
-        /* --- UPGRADED BUTTONS --- */
-        .action-btn { width: 100%; padding: 14px; font-family: monospace; font-size: 1.1rem; letter-spacing: 1px; font-weight: bold; border-radius: 8px; cursor: pointer; border: none; transition: 0.2s;}
-        .action-btn:hover { transform: translateY(-2px); }
-        
-        .create-btn { background: var(--racing-orange); color: white; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); } 
-        .create-btn:hover { background: #ea580c; box-shadow: 0 6px 20px rgba(234, 88, 12, 0.5); }
-        
-        .join-btn { background: transparent; border: 2px solid var(--racing-yellow); color: var(--racing-yellow); }
-        .join-btn:hover { background: var(--racing-yellow); color: #000; box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4); }
+      /* --- UPGRADED BUTTONS --- */
+      .action-btn {
+        width: 100%;
+        padding: 14px;
+        font-family: monospace;
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        border: none;
+        transition: 0.2s;
+      }
+      .action-btn:hover {
+        transform: translateY(-2px);
+      }
 
-        /* --- RULES BOX --- */
-        .rules-box { background: rgba(250, 204, 21, 0.05); border: 1px solid rgba(250, 204, 21, 0.3); padding: 15px; border-radius: 8px; text-align: left; }
-        .rules-box li { color: #cbd5e1; margin-bottom: 8px; line-height: 1.5; font-size: 0.95rem; }
-        
-        /* --- LEADERBOARD --- */
-        .lb-table { width: 100%; color: white; text-align: left; border-collapse: collapse; font-size: 0.95rem; }
-        .lb-table th { padding: 12px 8px; border-bottom: 2px solid var(--racing-yellow); color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; }
-        
-        /* --- SLEEK SELECT INPUT --- */
-        .diff-select {
-            background: rgba(0,0,0,0.8) !important;
-            border: 1px solid #475569 !important;
-            color: white !important;
-            padding: 12px !important;
-            border-radius: 8px !important;
-            font-family: monospace !important;
-            font-size: 1rem !important;
-            width: 100% !important;
-            box-sizing: border-box !important;
-            transition: 0.3s !important;
-            outline: none !important;
-        }
-        .diff-select:focus {
-            border-color: var(--racing-yellow) !important;
-            box-shadow: 0 0 15px rgba(250, 204, 21, 0.5) !important;
-        }
-        .diff-select option { background: #050505; color: white; }
+      .create-btn {
+        background: var(--racing-orange);
+        color: white;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+      }
+      .create-btn:hover {
+        background: #ea580c;
+        box-shadow: 0 6px 20px rgba(234, 88, 12, 0.5);
+      }
 
-        /* --- GLOWING TITLE --- */
-        .arcade-title-glow {
-            color: var(--racing-yellow) !important;
-            text-shadow: 0 0 20px rgba(250, 204, 21, 0.6) !important;
-        }
+      .join-btn {
+        background: transparent;
+        border: 2px solid var(--racing-yellow);
+        color: var(--racing-yellow);
+      }
+      .join-btn:hover {
+        background: var(--racing-yellow);
+        color: #000;
+        box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);
+      }
 
-        .copy-toast {
-            position: fixed; top: -50px; left: 50%; transform: translateX(-50%);
-            background: var(--racing-yellow); color: #000; padding: 10px 25px; border-radius: 30px;
-            font-weight: bold; z-index: 2000; opacity: 0; pointer-events: none;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);
-        }
-        .copy-toast.show { top: 30px; opacity: 1; }
+      /* --- RULES BOX --- */
+      .rules-box {
+        background: rgba(250, 204, 21, 0.05);
+        border: 1px solid rgba(250, 204, 21, 0.3);
+        padding: 15px;
+        border-radius: 8px;
+        text-align: left;
+      }
+      .rules-box li {
+        color: #cbd5e1;
+        margin-bottom: 8px;
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
 
-        .back-btn {
-            position: absolute; top: 20px; left: 20px;
-            background: rgba(250, 204, 21, 0.1); border: 2px solid var(--racing-yellow); color: var(--racing-yellow);
-            padding: 8px 15px; border-radius: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer;
-            font-family: monospace; font-weight: bold; font-size: 1rem; transition: 0.2s; z-index: 100;
-        }
-        .back-btn:hover { background: var(--racing-yellow); color: #000; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(250, 204, 21, 0.4); }
+      /* --- LEADERBOARD --- */
+      .lb-table {
+        width: 100%;
+        color: white;
+        text-align: left;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+      }
+      .lb-table th {
+        padding: 12px 8px;
+        border-bottom: 2px solid var(--racing-yellow);
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.8rem;
+      }
+
+      /* --- SLEEK SELECT INPUT --- */
+      .diff-select {
+        background: rgba(0, 0, 0, 0.8) !important;
+        border: 1px solid #475569 !important;
+        color: white !important;
+        padding: 12px !important;
+        border-radius: 8px !important;
+        font-family: monospace !important;
+        font-size: 1rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        transition: 0.3s !important;
+        outline: none !important;
+      }
+      .diff-select:focus {
+        border-color: var(--racing-yellow) !important;
+        box-shadow: 0 0 15px rgba(250, 204, 21, 0.5) !important;
+      }
+      .diff-select option {
+        background: #050505;
+        color: white;
+      }
+
+      /* --- GLOWING TITLE --- */
+      .arcade-title-glow {
+        color: var(--racing-yellow) !important;
+        text-shadow: 0 0 20px rgba(250, 204, 21, 0.6) !important;
+      }
+
+      .copy-toast {
+        position: fixed;
+        top: -50px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--racing-yellow);
+        color: #000;
+        padding: 10px 25px;
+        border-radius: 30px;
+        font-weight: bold;
+        z-index: 2000;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);
+      }
+      .copy-toast.show {
+        top: 30px;
+        opacity: 1;
+      }
+
+      .back-btn {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(250, 204, 21, 0.1);
+        border: 2px solid var(--racing-yellow);
+        color: var(--racing-yellow);
+        padding: 8px 15px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-family: monospace;
+        font-weight: bold;
+        font-size: 1rem;
+        transition: 0.2s;
+        z-index: 100;
+      }
+      .back-btn:hover {
+        background: var(--racing-yellow);
+        color: #000;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(250, 204, 21, 0.4);
+      }
     </style>
   </head>
   <body>
-    
     <div class="speed-bg">
-        <div class="speed-line" style="top: 15%; animation-duration: 0.8s; animation-delay: 0s; background: linear-gradient(90deg, transparent, var(--racing-yellow), transparent);"></div>
-        <div class="speed-line" style="top: 30%; animation-duration: 1.2s; animation-delay: 0.3s; background: linear-gradient(90deg, transparent, var(--racing-orange), transparent);"></div>
-        <div class="speed-line" style="top: 45%; animation-duration: 0.6s; animation-delay: 0.1s; background: linear-gradient(90deg, transparent, var(--racing-yellow), transparent); width: 400px;"></div>
-        <div class="speed-line" style="top: 60%; animation-duration: 1.5s; animation-delay: 0.6s; background: linear-gradient(90deg, transparent, #ef4444, transparent);"></div>
-        <div class="speed-line" style="top: 75%; animation-duration: 0.9s; animation-delay: 0.2s; background: linear-gradient(90deg, transparent, var(--racing-orange), transparent);"></div>
-        <div class="speed-line" style="top: 85%; animation-duration: 1.1s; animation-delay: 0.5s; background: linear-gradient(90deg, transparent, var(--racing-yellow), transparent); width: 150px;"></div>
+      <div
+        class="speed-line"
+        style="
+          top: 15%;
+          animation-duration: 0.8s;
+          animation-delay: 0s;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            var(--racing-yellow),
+            transparent
+          );
+        "
+      ></div>
+      <div
+        class="speed-line"
+        style="
+          top: 30%;
+          animation-duration: 1.2s;
+          animation-delay: 0.3s;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            var(--racing-orange),
+            transparent
+          );
+        "
+      ></div>
+      <div
+        class="speed-line"
+        style="
+          top: 45%;
+          animation-duration: 0.6s;
+          animation-delay: 0.1s;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            var(--racing-yellow),
+            transparent
+          );
+          width: 400px;
+        "
+      ></div>
+      <div
+        class="speed-line"
+        style="
+          top: 60%;
+          animation-duration: 1.5s;
+          animation-delay: 0.6s;
+          background: linear-gradient(90deg, transparent, #ef4444, transparent);
+        "
+      ></div>
+      <div
+        class="speed-line"
+        style="
+          top: 75%;
+          animation-duration: 0.9s;
+          animation-delay: 0.2s;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            var(--racing-orange),
+            transparent
+          );
+        "
+      ></div>
+      <div
+        class="speed-line"
+        style="
+          top: 85%;
+          animation-duration: 1.1s;
+          animation-delay: 0.5s;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            var(--racing-yellow),
+            transparent
+          );
+          width: 150px;
+        "
+      ></div>
     </div>
 
     <div id="copy-toast" class="copy-toast">Copied!</div>
 
     <div id="leave-modal" class="custom-modal">
-        <div class="modal-box">
-            <h2 style="margin-top:0; color: #ef4444;">ABANDON RACE?</h2>
-            <p style="color: #cbd5e1; margin-bottom: 30px;">If you leave now, you will forfeit the match and take a loss on your record.</p>
-            <button class="modal-btn btn-danger" onclick="surrenderMatch()">YES, SURRENDER</button>
-            <button class="modal-btn btn-safe" onclick="closeModal('leave-modal')">CANCEL</button>
-        </div>
+      <div class="modal-box">
+        <h2 style="margin-top: 0; color: #ef4444">ABANDON RACE?</h2>
+        <p style="color: #cbd5e1; margin-bottom: 30px">
+          If you leave now, you will forfeit the match and take a loss on your
+          record.
+        </p>
+        <button class="modal-btn btn-danger" onclick="surrenderMatch()">
+          YES, SURRENDER
+        </button>
+        <button class="modal-btn btn-safe" onclick="closeModal('leave-modal')">
+          CANCEL
+        </button>
+      </div>
     </div>
 
     <div id="end-screen" class="custom-modal">
-        <div class="modal-box" style="border-color: var(--racing-orange);">
-            <h1 id="result-banner" style="color: var(--racing-yellow); margin-top: 0; font-size: 2.5rem; text-shadow: 0 0 15px rgba(250, 204, 21, 0.4);">🏆 VICTORY!</h1>
-            <div id="stats" style="font-size: 1.2rem; color: #cbd5e1; margin-bottom: 20px;">
-                <p>SPEED: <span id="final-wpm" style="color: var(--racing-yellow); font-weight: bold;">--</span> WPM</p>
-                <p>ACCURACY: <span id="final-acc" style="color: var(--racing-yellow); font-weight: bold;">--</span>%</p>
-                <p>BURST: <span id="final-burst" style="color: var(--racing-orange); font-weight: bold;">--</span> WPM</p>
-            </div>
-            <p id="save-status" style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px;">Saving Data...</p>
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <button class="modal-btn btn-safe" onclick="window.location.href='hub.html'">BACK TO HUB</button>
-                <button class="modal-btn" style="background: var(--racing-orange); color: white;" onclick="requestRematch()">REMATCH</button>
-            </div>
+      <div class="modal-box" style="border-color: var(--racing-orange)">
+        <h1
+          id="result-banner"
+          style="
+            color: var(--racing-yellow);
+            margin-top: 0;
+            font-size: 2.5rem;
+            text-shadow: 0 0 15px rgba(250, 204, 21, 0.4);
+          "
+        >
+          🏆 VICTORY!
+        </h1>
+        <div
+          id="stats"
+          style="font-size: 1.2rem; color: #cbd5e1; margin-bottom: 20px"
+        >
+          <p>
+            SPEED:
+            <span
+              id="final-wpm"
+              style="color: var(--racing-yellow); font-weight: bold"
+              >--</span
+            >
+            WPM
+          </p>
+          <p>
+            ACCURACY:
+            <span
+              id="final-acc"
+              style="color: var(--racing-yellow); font-weight: bold"
+              >--</span
+            >%
+          </p>
+          <p>
+            BURST:
+            <span
+              id="final-burst"
+              style="color: var(--racing-orange); font-weight: bold"
+              >--</span
+            >
+            WPM
+          </p>
         </div>
-    </div>
-
-    <div id="ui-container" style="max-width: 1100px; width: 95%; z-index: 10; position: relative; margin-top: 80px;">
-      <div id="lobby">
-        
-        <button class="back-btn" onclick="window.location.href='hub.html'" title="Return to Hub">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-            HUB
-        </button>
-
-        <h1 class="arcade-title arcade-title-glow" style="text-align: center; margin-bottom: 30px; font-weight: 900; letter-spacing: 4px; font-size: 3rem;">TURBO RACING</h1>
-        
-        <div style="display: flex; gap: 30px; flex-wrap: wrap;">
-            
-            <div class="glass-panel" style="flex: 1.2; min-width: 350px; padding: 25px; border-radius: 12px; display: flex; flex-direction: column;">
-                <h3 style="margin-top:0; color: var(--racing-orange); letter-spacing: 2px;">GLOBAL LEADERBOARD</h3>
-                <div style="overflow-y: auto; flex: 1; max-height: 400px; padding-right: 10px;">
-                    <table class="lb-table">
-                        <thead>
-                            <tr>
-                                <th>Gamertag</th>
-                                <th>Skill Score</th>
-                                <th style="text-align: center;">Matches</th>
-                                <th style="text-align: center;">Win Ratio</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leaderboard-body">
-                            <tr><td colspan="4" style="text-align:center; padding: 20px; color: #94a3b8;">Loading Server Data...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 20px;">
-                
-                <div class="rules-box glass-panel" style="margin: 0;">
-                    <h3 style="margin-top:0; color: var(--racing-yellow); letter-spacing: 1px; text-shadow: 0 0 10px rgba(250,204,21,0.4);">🏎️ RACE RULES</h3> 
-                    <ul style="margin: 0; padding-left: 20px;">
-                        <li>Type correctly to accelerate. Mistakes stall your engine.</li>
-                        <li><strong style="color: var(--racing-orange);">NITRO STREAK:</strong> Type 5 words perfectly to ignite boosters!</li>
-                        <li><strong style="color: var(--racing-yellow);">TRACK HAZARDS:</strong> Yellow words grant speed bursts if typed perfectly, but trigger a 1-second WPM penalty and spin you out if you make a typo!</li>
-                    </ul>
-                </div>
-                
-                <div class="room-box glass-panel" style="margin: 0;">
-                    <h3 style="margin-top:0; font-size: 1rem; color: #cbd5e1;">RACE LENGTH</h3>
-                    <select id="race-length" class="diff-select" style="margin-top: 5px;">
-                        <option value="1">Short (20 Words)</option>
-                        <option value="2" selected>Medium (50 Words)</option>
-                        <option value="3">Long (120 Words)</option>
-                    </select>
-                </div>
-
-                <div style="display: flex; gap: 15px;">
-                    <div class="room-box glass-panel" style="margin: 0;">
-                        <h3 style="margin-top:0; font-size: 1rem; color: #cbd5e1;">HOST</h3>
-                        <button class="action-btn create-btn" style="margin-top: 5px;" onclick="hostRoom()">CREATE ROOM</button>
-                    </div>
-                    <div class="room-box glass-panel" style="margin: 0;">
-                        <h3 style="margin-top:0; font-size: 1rem; color: #cbd5e1;">JOIN</h3>
-                        <input type="text" id="room-code-input" class="diff-select" placeholder="6-DIGIT CODE" style="margin-top: 5px; text-transform: uppercase; text-align: center;">
-                        <button class="action-btn join-btn" style="margin-top: 10px;" onclick="joinExistingRoom()">JOIN ROOM</button>
-                    </div>
-                </div>
-                <p id="room-error" style="color: #ef4444; display: none; margin: 0; font-weight: bold; text-align: center;"></p>
-
-            </div>
-        </div>
-      </div>
-
-      <div id="waiting-screen" style="display: none; text-align: center;" class="glass-panel">
-          <button class="back-btn" onclick="window.location.href='hub.html'" title="Return to Hub">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-              HUB
+        <p
+          id="save-status"
+          style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px"
+        >
+          Saving Data...
+        </p>
+        <div style="display: flex; gap: 10px; justify-content: center">
+          <button
+            class="modal-btn btn-safe"
+            onclick="window.location.href = 'hub.html'"
+          >
+            BACK TO HUB
           </button>
-
-          <h2 class="arcade-title-glow" style="margin-top: 20px;">ROOM CREATED</h2> 
-          <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px; padding: 20px;">
-              <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; flex: 1; border: 1px solid rgba(255,255,255,0.1);">
-                  <p style="color: #94a3b8; font-weight: bold; margin: 0 0 10px 0;">ROOM CODE</p>
-                  <div style="display: flex; gap: 5px;">
-                      <input type="text" id="display-room-code" readonly style="flex: 1; text-align: center; letter-spacing: 3px; font-size: 1.5rem; background: rgba(0,0,0,0.5); border: 2px dashed var(--racing-yellow); border-radius: 8px; color: var(--racing-yellow); outline: none;"> 
-                      <button onclick="copyData('display-room-code')" class="action-btn create-btn" style="width: auto; margin: 0;">COPY</button>
-                  </div>
-              </div>
-              <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; flex: 1; border: 1px solid rgba(255,255,255,0.1);">
-                  <p style="color: #94a3b8; font-weight: bold; margin: 0 0 10px 0;">INVITE LINK</p>
-                  <div style="display: flex; gap: 5px;">
-                      <input type="text" id="display-room-link" readonly style="flex: 1; text-align: center; font-size: 0.9rem; background: rgba(0,0,0,0.5); border: 1px solid #64748b; border-radius: 8px; color: #fff; outline: none;">
-                      <button onclick="copyData('display-room-link')" class="action-btn join-btn" style="width: auto; margin: 0;">COPY</button>
-                  </div>
-              </div>
-          </div>
-          <p style="color: #cbd5e1; font-weight: bold; margin-bottom: 30px;">Waiting for challenger to connect...</p>
+          <button
+            class="modal-btn"
+            style="background: var(--racing-orange); color: white"
+            onclick="requestRematch()"
+          >
+            REMATCH
+          </button>
+        </div>
       </div>
     </div>
 
-    <div id="game-ui" style="display: none; flex-direction: column; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; background: #050505; z-index: 200;">
-        
-        <header class="race-header">
-            <div class="brand-logo">TURBO</div>
-            <div style="text-align: center;">
-                <div class="vs-banner" id="vs-header">PLAYER VS OPPONENT</div>
-                <div id="header-skill-scores" style="font-size: 0.85rem; margin-top: 4px; display: none;">
-                    <span id="p1-skill-header" style="color: #3b82f6; font-weight: bold;">Score: 0</span>
-                    <span style="color: #64748b; margin: 0 10px;">|</span>
-                    <span id="p2-skill-header" style="color: #ef4444; font-weight: bold;">Score: 0</span>
-                </div>
-            </div>
-            <div class="room-badge" id="room-code-display">ROOM: ----</div>
-        </header>
-        <p id="connection-alert" style="color: #f59e0b; background: #1e293b; text-align:center; margin:0; padding:5px; display: none; font-weight: bold;">OPPONENT DISCONNECTED. WAITING FOR RECONNECT...</p>
-
-        <div id="gameplay-event" class="gameplay-event">EVENT</div>
-
-        <div id="race-track">
-            <div class="parallax layer-sky" id="bg-sky"></div>
-            <div class="parallax layer-city" id="bg-city"></div>
-            <div class="parallax layer-road" id="bg-road"></div>
-            
-            <div class="car" id="p2-car">
-                <div class="nitro-flame" id="p2-nitro"></div>
-                <svg width="150" height="50" viewBox="0 0 200 60" style="filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));">
-                    <path d="M20 50 L10 35 C10 35 25 20 60 20 L100 15 C100 15 150 12 170 20 L195 30 C195 30 200 35 195 45 L190 50 Z" fill="#ef4444" />
-                    <path d="M100 15 L80 25 L130 25 L150 18 Z" fill="#cbd5e1" opacity="0.8" />
-                    <circle cx="50" cy="50" r="12" fill="#1e293b" stroke="#ef4444" stroke-width="3" />
-                    <circle cx="160" cy="50" r="12" fill="#1e293b" stroke="#ef4444" stroke-width="3" />
-                </svg>
-                <div class="player-tag">
-                    <span class="name" id="p2-name-tag">OPPONENT</span>
-                    <span class="wpm" id="p2-wpm-tag">0 WPM</span>
-                </div>
-            </div>
-
-            <div class="car" id="p1-car">
-                <div class="nitro-flame" id="p1-nitro"></div>
-                <svg width="180" height="60" viewBox="0 0 200 60" style="filter: drop-shadow(0 10px 10px rgba(0,0,0,0.8));">
-                    <path d="M20 50 L10 35 C10 35 25 20 60 20 L100 15 C100 15 150 12 170 20 L195 30 C195 30 200 35 195 45 L190 50 Z" fill="#3b82f6" />
-                    <path d="M100 15 L80 25 L130 25 L150 18 Z" fill="#e2e8f0" opacity="0.9" />
-                    <circle cx="50" cy="50" r="12" fill="#0f172a" stroke="#3b82f6" stroke-width="3" />
-                    <circle cx="160" cy="50" r="12" fill="#0f172a" stroke="#3b82f6" stroke-width="3" />
-                </svg>
-                <div class="player-tag">
-                    <span class="name" id="p1-name-tag">YOU</span>
-                    <span class="wpm" id="p1-wpm-tag">0 WPM</span>
-                </div>
-            </div>
-            <div id="timer-overlay"></div>
-        </div>
-
-        <div id="typing-console">
-            <div id="text-window">
-                <div id="text-content">Loading track...</div>
-            </div>
-            <input type="text" id="hidden-type-input" autocomplete="off" />
-            <div id="live-typing-display"></div>
-            
-            <div class="words-remaining">Words Remaining: <span id="words-left-count" style="color: #f8fafc;">0</span></div>
-        </div>
-
-        <div id="difficulty-display" class="difficulty-badge" style="display: none;">DIFFICULTY: <span id="diff-level">MEDIUM</span></div>
-
-        <button class="leave-btn" onclick="openModal('leave-modal')" title="Leave Match">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+    <div
+      id="ui-container"
+      style="
+        max-width: 1100px;
+        width: 95%;
+        z-index: 10;
+        position: relative;
+        margin-top: 80px;
+      "
+    >
+      <div id="lobby">
+        <button
+          class="back-btn"
+          onclick="window.location.href = 'hub.html'"
+          title="Return to Hub"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          HUB
         </button>
+
+        <h1
+          class="arcade-title arcade-title-glow"
+          style="
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            font-size: 3rem;
+          "
+        >
+          TURBO RACING
+        </h1>
+
+        <div style="display: flex; gap: 30px; flex-wrap: wrap">
+          <div
+            class="glass-panel"
+            style="
+              flex: 1.2;
+              min-width: 350px;
+              padding: 25px;
+              border-radius: 12px;
+              display: flex;
+              flex-direction: column;
+            "
+          >
+            <h3
+              style="
+                margin-top: 0;
+                color: var(--racing-orange);
+                letter-spacing: 2px;
+              "
+            >
+              GLOBAL LEADERBOARD
+            </h3>
+            <div
+              style="
+                overflow-y: auto;
+                flex: 1;
+                max-height: 400px;
+                padding-right: 10px;
+              "
+            >
+              <table class="lb-table">
+                <thead>
+                  <tr>
+                    <th>Gamertag</th>
+                    <th>Skill Score</th>
+                    <th style="text-align: center">Matches</th>
+                    <th style="text-align: center">Win Ratio</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboard-body">
+                  <tr>
+                    <td
+                      colspan="4"
+                      style="text-align: center; padding: 20px; color: #94a3b8"
+                    >
+                      Loading Server Data...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div
+            style="
+              flex: 1;
+              min-width: 300px;
+              display: flex;
+              flex-direction: column;
+              gap: 20px;
+            "
+          >
+            <div class="rules-box glass-panel" style="margin: 0">
+              <h3
+                style="
+                  margin-top: 0;
+                  color: var(--racing-yellow);
+                  letter-spacing: 1px;
+                  text-shadow: 0 0 10px rgba(250, 204, 21, 0.4);
+                "
+              >
+                🏎️ RACE RULES
+              </h3>
+              <ul style="margin: 0; padding-left: 20px">
+                <li>
+                  Type correctly to accelerate. Mistakes stall your engine.
+                </li>
+                <li>
+                  <strong style="color: var(--racing-orange)"
+                    >NITRO STREAK:</strong
+                  >
+                  Type 5 words perfectly to ignite boosters!
+                </li>
+                <li>
+                  <strong style="color: var(--racing-yellow)"
+                    >TRACK HAZARDS:</strong
+                  >
+                  Yellow words grant speed bursts if typed perfectly, but
+                  trigger a 1-second WPM penalty and spin you out if you make a
+                  typo!
+                </li>
+              </ul>
+            </div>
+
+            <div class="room-box glass-panel" style="margin: 0">
+              <h3 style="margin-top: 0; font-size: 1rem; color: #cbd5e1">
+                RACE LENGTH
+              </h3>
+              <select
+                id="race-length"
+                class="diff-select"
+                style="margin-top: 5px"
+              >
+                <option value="1">Short (20 Words)</option>
+                <option value="2" selected>Medium (50 Words)</option>
+                <option value="3">Long (120 Words)</option>
+              </select>
+            </div>
+
+            <div style="display: flex; gap: 15px">
+              <div class="room-box glass-panel" style="margin: 0">
+                <h3 style="margin-top: 0; font-size: 1rem; color: #cbd5e1">
+                  HOST
+                </h3>
+                <button
+                  class="action-btn create-btn"
+                  style="margin-top: 5px"
+                  onclick="hostRoom()"
+                >
+                  CREATE ROOM
+                </button>
+              </div>
+              <div class="room-box glass-panel" style="margin: 0">
+                <h3 style="margin-top: 0; font-size: 1rem; color: #cbd5e1">
+                  JOIN
+                </h3>
+                <input
+                  type="text"
+                  id="room-code-input"
+                  class="diff-select"
+                  placeholder="6-DIGIT CODE"
+                  style="
+                    margin-top: 5px;
+                    text-transform: uppercase;
+                    text-align: center;
+                  "
+                />
+                <button
+                  class="action-btn join-btn"
+                  style="margin-top: 10px"
+                  onclick="joinExistingRoom()"
+                >
+                  JOIN ROOM
+                </button>
+              </div>
+            </div>
+            <p
+              id="room-error"
+              style="
+                color: #ef4444;
+                display: none;
+                margin: 0;
+                font-weight: bold;
+                text-align: center;
+              "
+            ></p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="waiting-screen"
+        style="display: none; text-align: center"
+        class="glass-panel"
+      >
+        <button
+          class="back-btn"
+          onclick="window.location.href = 'hub.html'"
+          title="Return to Hub"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          HUB
+        </button>
+
+        <h2 class="arcade-title-glow" style="margin-top: 20px">ROOM CREATED</h2>
+        <div
+          style="
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            padding: 20px;
+          "
+        >
+          <div
+            style="
+              background: rgba(0, 0, 0, 0.4);
+              padding: 15px;
+              border-radius: 8px;
+              flex: 1;
+              border: 1px solid rgba(255, 255, 255, 0.1);
+            "
+          >
+            <p style="color: #94a3b8; font-weight: bold; margin: 0 0 10px 0">
+              ROOM CODE
+            </p>
+            <div style="display: flex; gap: 5px">
+              <input
+                type="text"
+                id="display-room-code"
+                readonly
+                style="
+                  flex: 1;
+                  text-align: center;
+                  letter-spacing: 3px;
+                  font-size: 1.5rem;
+                  background: rgba(0, 0, 0, 0.5);
+                  border: 2px dashed var(--racing-yellow);
+                  border-radius: 8px;
+                  color: var(--racing-yellow);
+                  outline: none;
+                "
+              />
+              <button
+                onclick="copyData('display-room-code')"
+                class="action-btn create-btn"
+                style="width: auto; margin: 0"
+              >
+                COPY
+              </button>
+            </div>
+          </div>
+          <div
+            style="
+              background: rgba(0, 0, 0, 0.4);
+              padding: 15px;
+              border-radius: 8px;
+              flex: 1;
+              border: 1px solid rgba(255, 255, 255, 0.1);
+            "
+          >
+            <p style="color: #94a3b8; font-weight: bold; margin: 0 0 10px 0">
+              INVITE LINK
+            </p>
+            <div style="display: flex; gap: 5px">
+              <input
+                type="text"
+                id="display-room-link"
+                readonly
+                style="
+                  flex: 1;
+                  text-align: center;
+                  font-size: 0.9rem;
+                  background: rgba(0, 0, 0, 0.5);
+                  border: 1px solid #64748b;
+                  border-radius: 8px;
+                  color: #fff;
+                  outline: none;
+                "
+              />
+              <button
+                onclick="copyData('display-room-link')"
+                class="action-btn join-btn"
+                style="width: auto; margin: 0"
+              >
+                COPY
+              </button>
+            </div>
+          </div>
+        </div>
+        <p style="color: #cbd5e1; font-weight: bold; margin-bottom: 30px">
+          Waiting for challenger to connect...
+        </p>
+      </div>
+    </div>
+
+    <!-- MAIN GAME UI OVERLAY -->
+    <div
+      id="game-ui"
+      style="
+        display: none;
+        flex-direction: column;
+        width: 100vw;
+        height: 100vh;
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: #050505;
+        z-index: 200;
+      "
+    >
+      <header class="race-header">
+        <div class="brand-logo">TURBO<span style="color: red;">RACING🏁</span></div>
+        <div style="text-align: center">
+          <div class="vs-banner" id="vs-header">PLAYER VS OPPONENT</div>
+          <div
+            id="header-skill-scores"
+            style="font-size: 0.85rem; margin-top: 4px; display: none"
+          >
+            <span id="p1-skill-header" style="color: #3b82f6; font-weight: bold"
+              >Score: 0</span
+            >
+            <span style="color: #64748b; margin: 0 10px">|</span>
+            <span id="p2-skill-header" style="color: #ef4444; font-weight: bold"
+              >Score: 0</span
+            >
+          </div>
+        </div>
+        <div class="room-badge" id="room-code-display">ROOM: ----</div>
+      </header>
+
+      <p
+        id="connection-alert"
+        style="
+          color: #f59e0b;
+          background: #1e293b;
+          text-align: center;
+          margin: 0;
+          padding: 5px;
+          display: none;
+          font-weight: bold;
+        "
+      >
+        OPPONENT DISCONNECTED. WAITING FOR RECONNECT...
+      </p>
+
+      <div id="gameplay-event" class="gameplay-event">EVENT</div>
+
+      <!-- NEW PARALLAX RACE TRACK GRAPHICS -->
+      <div id="race-track">
+        <div class="sun-glow"></div>
+
+        <div id="layer-mountains" class="bg-parallax layer-mountains"></div>
+        <div id="layer-city" class="bg-parallax layer-city"></div>
+
+        <div id="layer-road" class="layer-road">
+          <div id="layer-lines" class="bg-parallax layer-lines"></div>
+        </div>
+
+        <div id="vignette" class="speed-vignette"></div>
+
+        <!-- OPPONENT CAR (BACKGROUND) -->
+        <div class="car-container" id="p2-car">
+          <div class="exhaust-flame ai-flame" id="p2-exhaust"></div>
+          <img
+            src="assets/rival-car.png"
+            alt="Opponent Body"
+            class="car-body opponent-body"
+          />
+          <img
+            src="assets/tire back.gif"
+            id="p2-tire-back"
+            class="tire-img tire-back"
+            alt="Back Tire"
+          />
+          <img
+            src="assets/tire front.gif"
+            id="p2-tire-front"
+            class="tire-img tire-front"
+            alt="Front Tire"
+          />
+
+          <div class="player-tag">
+            <span class="name" id="p2-name-tag">OPPONENT</span>
+            <span class="wpm" id="p2-wpm-tag">0 WPM</span>
+          </div>
+        </div>
+
+        <!-- PLAYER CAR (FOREGROUND) -->
+        <div class="car-container" id="p1-car">
+          <div class="exhaust-flame player-flame" id="p1-exhaust"></div>
+          <img src="assets/ally-car.png" alt="Player Body" class="car-body player-body" />
+          <img
+            src="assets/tire back.gif"
+            id="p1-tire-back"
+            class="tire-img tire-back"
+            alt="Back Tire"
+          />
+          <img
+            src="assets/tire front.gif"
+            id="p1-tire-front"
+            class="tire-img tire-front"
+            alt="Front Tire"
+          />
+
+          <div class="player-tag">
+            <span class="name" id="p1-name-tag">YOU</span>
+            <span class="wpm" id="p1-wpm-tag">0 WPM</span>
+          </div>
+        </div>
+
+        <div id="timer-overlay"></div>
+      </div>
+
+      <!-- BOTTOM TYPING HUD -->
+      <div id="typing-console">
+        <div id="text-window">
+          <div id="text-content">Loading track...</div>
+        </div>
+        <input type="text" id="hidden-type-input" autocomplete="off" />
+        <div id="live-typing-display"></div>
+
+        <div class="words-remaining">
+          Words Remaining:
+          <span id="words-left-count" style="color: #f8fafc">0</span>
+        </div>
+      </div>
+
+      <div
+        id="difficulty-display"
+        class="difficulty-badge"
+        style="display: none"
+      >
+        DIFFICULTY: <span id="diff-level">MEDIUM</span>
+      </div>
+
+      <button
+        class="leave-btn"
+        onclick="openModal('leave-modal')"
+        title="Leave Match"
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      </button>
     </div>
 
     <script src="game.js"></script>
     <script>
-        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-        
-        function copyData(id) { 
-            const c = document.getElementById(id); 
-            c.select(); 
-            document.execCommand('copy'); 
-            
-            const toast = document.getElementById('copy-toast');
-            toast.innerText = id === 'display-room-code' ? "Room Code Copied!" : "Invite Link Copied!";
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2000);
-        }
+      function openModal(id) {
+        document.getElementById(id).style.display = "flex";
+      }
+      function closeModal(id) {
+        document.getElementById(id).style.display = "none";
+      }
+
+      function copyData(id) {
+        const c = document.getElementById(id);
+        c.select();
+        document.execCommand("copy");
+
+        const toast = document.getElementById("copy-toast");
+        toast.innerText =
+          id === "display-room-code"
+            ? "Room Code Copied!"
+            : "Invite Link Copied!";
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 2000);
+      }
     </script>
   </body>
 </html>

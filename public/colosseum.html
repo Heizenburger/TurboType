@@ -6,123 +6,14 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         if (!localStorage.getItem('token')) {
-            window.location.href = 'index.html?redirect=' + encodeURIComponent(window.location.href);
+            window.location.replace('index.html');
         }
     </script>
     <link rel="stylesheet" href="colosseum_theme.css" />
-    <style>
-        :root { --raid-red: #e11d48; --raid-light: #fb7185; --raid-dark: #9f1239; }
-
-        body { background: #050505 !important; margin: 0; overflow-x: hidden; font-family: 'Inter', sans-serif; }
-        #ui-container { background: transparent !important; backdrop-filter: none !important; border: none !important; box-shadow: none !important; }
-
-        .ember-bg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: radial-gradient(circle at center, #1a050a 0%, #050505 100%) !important; z-index: -1; overflow: hidden; }
-        .ember { position: absolute; bottom: -20px; background: #fff; border-radius: 50%; box-shadow: 0 0 10px #facc15, 0 0 20px var(--raid-red), 0 0 40px var(--raid-red); animation: flyEmber linear infinite; }
-        @keyframes flyEmber { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(calc(20vw * var(--dir)), -120vh) scale(0); opacity: 0; } }
-
-        .glass-panel { background: rgba(10, 10, 10, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(225, 29, 72, 0.15); }
-        .room-box { background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; flex: 1; border: 1px solid rgba(255,255,255,0.05); }
-        .action-btn { width: 100%; padding: 14px; font-family: monospace; font-size: 1.1rem; letter-spacing: 1px; font-weight: bold; border-radius: 8px; cursor: pointer; border: none; transition: 0.2s;}
-        .action-btn:hover { transform: translateY(-2px); }
-        
-        .create-btn { background: var(--raid-red); color: white; box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3); } 
-        .create-btn:hover { background: var(--raid-light); box-shadow: 0 6px 20px rgba(251, 113, 133, 0.5); }
-        .join-btn { background: transparent; border: 2px solid var(--raid-red); color: var(--raid-red); }
-        .join-btn:hover { background: var(--raid-red); color: white; box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4); }
-
-        .rules-box { background: rgba(225, 29, 72, 0.05); border: 1px solid rgba(225, 29, 72, 0.3); padding: 15px; border-radius: 8px; text-align: left; }
-        .rules-box li { color: #cbd5e1; margin-bottom: 8px; line-height: 1.5; font-size: 0.95rem; }
-        
-        .lb-table { width: 100%; color: white; text-align: left; border-collapse: collapse; font-size: 0.95rem; }
-        .lb-table th { padding: 12px 8px; border-bottom: 2px solid var(--raid-red); color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; }
-        .diff-select { background: rgba(0,0,0,0.8) !important; border: 1px solid #475569 !important; color: white !important; padding: 12px !important; border-radius: 8px !important; font-family: monospace !important; font-size: 1rem !important; width: 100% !important; box-sizing: border-box !important; outline: none !important; text-align: center; }
-        .arcade-title-glow { color: var(--raid-red) !important; text-shadow: 0 0 20px rgba(225, 29, 72, 0.6) !important; }
-
-        .back-btn { position: absolute; top: 20px; left: 20px; background: rgba(225, 29, 72, 0.1); border: 2px solid var(--raid-red); color: var(--raid-red); padding: 8px 15px; border-radius: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-family: monospace; font-weight: bold; font-size: 1rem; transition: 0.2s; z-index: 100; text-decoration: none; }
-        .back-btn:hover { background: var(--raid-red); color: white; transform: translateY(-2px); }
-
-        /* --- PERFECTED GAME UI HEADER --- */
-        .race-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: #020005; border-bottom: 2px solid var(--raid-red); color: white; z-index: 10; }
-        .brand-logo { font-size: 1.5rem; font-weight: 900; color: var(--raid-red); text-transform: uppercase; font-style: italic; letter-spacing: 2px; }
-        .vs-banner { font-size: 1.5rem; font-weight: 900; color: var(--raid-light); letter-spacing: 3px; font-family: monospace; }
-        .header-controls { display: flex; gap: 15px; align-items: center; }
-        .room-badge { font-size: 1rem; background: rgba(225, 29, 72, 0.2); padding: 8px 15px; border-radius: 6px; border: 1px solid var(--raid-red); color: white; font-family: monospace; font-weight: bold;}
-        .header-copy-btn { background: transparent; border: 2px solid var(--raid-light); color: var(--raid-light); padding: 8px 15px; border-radius: 6px; font-family: monospace; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .header-copy-btn:hover { background: var(--raid-light); color: black; box-shadow: 0 0 15px rgba(251, 113, 133, 0.5); }
-
-        /* --- BOSS ARENA --- */
-        #boss-arena { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; background: radial-gradient(circle at center, #1a050a 0%, #050505 100%); border-bottom: 4px solid var(--raid-dark); overflow: hidden; }
-        
-        #boss-hp-container { width: 70%; max-width: 700px; height: 25px; background: #050505; border: 2px solid var(--raid-red); border-radius: 20px; overflow: hidden; position: absolute; top: 20px; box-shadow: 0 0 20px rgba(225, 29, 72, 0.3); z-index: 10; }
-        #boss-hp-fill { height: 100%; background: linear-gradient(90deg, #9f1239, #fb7185); transition: width 0.1s ease-out; width: 100%; }
-        #boss-hp-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: 900; font-family: monospace; font-size: 1rem; text-shadow: 0 0 5px black; letter-spacing: 2px; }
-
-        /* --- DEMONIC ALIEN BOSS --- */
-        #boss-entity { position: relative; width: 280px; height: 280px; margin-top: 10px; transition: 0.1s; z-index: 5; }
-        .boss-hull { position: absolute; top: 15%; left: 20%; width: 60%; height: 70%; background: #0a0505; border: 4px solid var(--raid-red); clip-path: polygon(50% 0%, 100% 25%, 80% 100%, 50% 80%, 20% 100%, 0% 25%); box-shadow: inset 0 0 40px var(--raid-dark); animation: floatBoss 4s infinite alternate ease-in-out; z-index: 2; }
-        .boss-core { position: absolute; top: 40%; left: 40%; width: 20%; height: 20%; background: #fff; border-radius: 50%; box-shadow: 0 0 50px var(--raid-red), 0 0 80px var(--raid-light); animation: breatheCore 1.5s infinite alternate; z-index: 3; }
-        .boss-wing-left { position: absolute; top: 0%; left: -10%; width: 50%; height: 90%; background: #050202; border-right: 4px solid var(--raid-red); clip-path: polygon(20% 0%, 100% 40%, 60% 100%, 0% 60%); animation: flapWingL 3s infinite alternate ease-in-out; z-index: 1; box-shadow: inset -10px 0 20px rgba(225,29,72,0.3); }
-        .boss-wing-right { position: absolute; top: 0%; right: -10%; width: 50%; height: 90%; background: #050202; border-left: 4px solid var(--raid-red); clip-path: polygon(80% 0%, 100% 60%, 40% 100%, 0% 40%); animation: flapWingR 3s infinite alternate ease-in-out; z-index: 1; box-shadow: inset 10px 0 20px rgba(225,29,72,0.3); }
-
-        @keyframes floatBoss { 0% { transform: translateY(-10px); } 100% { transform: translateY(10px); } }
-        @keyframes breatheCore { 0% { transform: scale(0.8); filter: drop-shadow(0 0 20px #e11d48); } 100% { transform: scale(1.3); filter: drop-shadow(0 0 60px #fb7185); } }
-        @keyframes flapWingL { 0% { transform: rotate(-5deg) translateY(0); } 100% { transform: rotate(5deg) translateY(15px); } }
-        @keyframes flapWingR { 0% { transform: rotate(5deg) translateY(0); } 100% { transform: rotate(-5deg) translateY(15px); } }
-
-        .hit-flash { filter: brightness(3) drop-shadow(0 0 50px #fff); transform: scale(0.9) rotate(5deg) !important; }
-        .boss-dead .boss-core { background: #222; animation: none; filter: none; box-shadow: none; border: 2px solid #444; }
-        .boss-dead .boss-hull { border-color: #333; box-shadow: none; animation: none; background: #111; }
-        .boss-dead .boss-wing-left, .boss-dead .boss-wing-right { animation: none; border-color: #333; box-shadow: none; transform: translateY(50px) rotate(20deg); opacity: 0.3; }
-
-        /* --- PLAYER AVATARS --- */
-        #players-container { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 50px; z-index: 5; }
-        .player-avatar { width: 50px; height: 50px; background: #1e293b; border: 3px solid #cbd5e1; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 15px rgba(255,255,255,0.2); transition: 0.3s; position: relative; color: white; font-weight: bold; font-family: monospace; font-size: 1.2rem;}
-        .player-avatar.me { border-color: #3b82f6; box-shadow: 0 0 25px #3b82f6; background: #0f172a; transform: translateY(-10px) scale(1.1); }
-        .player-name { position: absolute; bottom: -25px; font-size: 0.75rem; color: #cbd5e1; font-family: monospace; white-space: nowrap; font-weight: bold; background: rgba(0,0,0,0.8); padding: 3px 8px; border-radius: 4px; border: 1px solid #334155; }
-        .player-avatar.me .player-name { color: #3b82f6; border-color: #3b82f6; }
-
-        /* --- LASER ANIMATIONS --- */
-        .laser { position: absolute; width: 4px; height: 50px; background: #3b82f6; box-shadow: 0 0 15px #3b82f6, 0 0 30px #fff; border-radius: 2px; pointer-events: none; z-index: 10; transition: all 0.15s linear; }
-        .boss-laser { background: var(--raid-red); box-shadow: 0 0 25px #ff0000, 0 0 50px #fff; width: 12px; height: 80px; }
-
-        #raid-log { position: absolute; left: 20px; top: 20px; width: 280px; height: 200px; background: rgba(0,0,0,0.6); border: 1px solid var(--raid-red); border-radius: 8px; padding: 15px; font-family: monospace; color: var(--raid-light); font-size: 0.85rem; overflow-y: hidden; text-align: left; box-shadow: 0 0 15px rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 10;}
-
-        /* --- TYPING CONSOLE --- */
-        #typing-console { background: #050505; padding: 30px; height: 180px; display: flex; flex-direction: column; align-items: center; position: relative; }
-        #text-window { width: 85%; max-width: 1000px; font-size: 1.5rem; font-family: 'Courier New', monospace; font-weight: bold; color: #64748b; line-height: 1.8em; margin-bottom: 20px; text-align: center; }
-        
-        .word { display: inline-block; margin-right: 0.4em; padding: 0 0.1em; border-radius: 4px; transition: 0.1s; }
-        .word.correct { color: #3f3f46; }
-        .word.current { border-bottom: 3px solid var(--raid-red); color: white; background: rgba(225, 29, 72, 0.1); }
-        .word.error { color: #ef4444; background: rgba(239, 68, 68, 0.3); border-bottom: 3px solid #ef4444; }
-
-        /* --- BOSS HAZARD WORDS --- */
-        .word.hazard { color: #fca5a5; text-shadow: 0 0 8px rgba(225, 29, 72, 0.8); }
-        .word.hazard.current { background: rgba(225, 29, 72, 0.3); color: #fff; border-bottom: 3px dashed var(--raid-red); }
-
-        #input-field { background: rgba(225, 29, 72, 0.05); border: 2px solid var(--raid-red); color: white; font-family: 'Courier New', monospace; font-size: 1.5rem; padding: 10px 20px; border-radius: 8px; width: 50%; max-width: 500px; text-align: center; outline: none; transition: 0.2s; font-weight: bold; }
-        #input-field:focus { box-shadow: 0 0 20px rgba(225, 29, 72, 0.4); background: rgba(225, 29, 72, 0.1); }
-
-        @keyframes screenShake { 0% { transform: translate(15px, 10px); } 20% { transform: translate(-15px, -10px); } 40% { transform: translate(15px, -10px); } 60% { transform: translate(-15px, 10px); } 80% { transform: translate(10px, 10px); } 100% { transform: translate(0, 0); } }
-        .system-shock { animation: screenShake 0.4s ease-in-out; filter: saturate(2) hue-rotate(-10deg); border: 5px solid red !important; box-sizing: border-box;}
-
-        .leave-btn { position: fixed; bottom: 20px; right: 20px; background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; color: #ef4444; width: 50px; height: 50px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; z-index: 100; }
-        .leave-btn:hover { background: #ef4444; color: white; transform: scale(1.1); box-shadow: 0 0 15px #ef4444; }
-
-        .custom-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-box { background: #110508; padding: 40px; border-radius: 16px; border: 2px solid var(--raid-red); text-align: center; color: white; max-width: 450px; box-shadow: 0 10px 40px rgba(225, 29, 72, 0.3); }
-        .modal-btn { padding: 12px 24px; margin: 10px 5px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s; font-family: monospace; font-size: 1.1rem; }
-        .modal-btn:hover { transform: translateY(-2px); }
-        .btn-danger { background: #ef4444; color: white; }
-        .btn-safe { background: #334155; color: white; }
-
-        .copy-toast { position: fixed; top: -50px; left: 50%; transform: translateX(-50%); background: var(--raid-red); color: white; padding: 10px 25px; border-radius: 30px; font-weight: bold; z-index: 2000; opacity: 0; transition: 0.4s; box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4); }
-        .copy-toast.show { top: 30px; opacity: 1; }
-    </style>
   </head>
   <body>
     
-    <div class="ember-bg">
+    <div class="ember-bg" id="dynamic-bg">
         <div class="ember" style="left: 20%; width: 6px; height: 6px; animation-duration: 2.5s; animation-delay: 0s; --dir: 1;"></div>
         <div class="ember" style="left: 50%; width: 9px; height: 9px; animation-duration: 3.2s; animation-delay: 0.5s; --dir: -1.5;"></div>
         <div class="ember" style="left: 80%; width: 5px; height: 5px; animation-duration: 2.1s; animation-delay: 1.2s; --dir: 2;"></div>
@@ -161,8 +52,7 @@
     <div id="ui-container" style="max-width: 1100px; width: 95%; z-index: 10; position: relative; margin-top: 80px;">
       <div id="lobby">
         <button class="back-btn" onclick="window.location.href='hub.html'" title="Return to Hub">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-            HUB
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> HUB
         </button>
 
         <h1 class="arcade-title arcade-title-glow" style="text-align: center; margin-bottom: 30px; font-weight: 900; letter-spacing: 4px; font-size: 3rem;">COLOSSEUM RAID</h1>
@@ -187,8 +77,8 @@
                     <h3 style="margin-top:0; color: var(--raid-red); letter-spacing: 1px; text-shadow: 0 0 10px rgba(225, 29, 72, 0.4);">⚔️ BATTLE INSTRUCTIONS</h3>
                     <ul style="margin: 0; padding-left: 20px;">
                         <li><strong>Co-op Gameplay:</strong> All players share the same Boss instance and HP bar.</li>
-                        <li><strong>Server Persistence:</strong> Your progress is saved on the server. Rejoin within 60 seconds to resume the fight if disconnected.</li>
-                        <li><strong style="color: var(--raid-red);">HAZARD WARNING:</strong> Words glowing in Red are Boss Attacks! If you make a typo on these words, you will take damage, the Boss will heal, and you will be knocked backward!</li>
+                        <li><strong style="color: #facc15;">COMBO MULTIPLIER:</strong> Type flawlessly to build your combo. High combos multiply your damage output up to 2.5x!</li>
+                        <li><strong style="color: var(--raid-red);">HAZARD WARNING:</strong> Words glowing Red are Boss Attacks! Typos here damage you, heal the boss, and break your combo!</li>
                     </ul>
                 </div>
 
@@ -207,6 +97,38 @@
             </div>
         </div>
       </div>
+      
+      <div id="waiting-screen" style="display: none; text-align: center;" class="glass-panel">
+        <button class="back-btn" onclick="window.location.href='hub.html'" title="Return to Hub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> HUB
+        </button>
+
+        <h2 class="arcade-title-glow" style="margin-top: 20px;">SQUAD ASSEMBLY</h2> 
+        <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px; padding: 20px; flex-wrap: wrap;">
+            <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; flex: 1; border: 1px solid rgba(255,255,255,0.1); min-width: 250px;">
+                <p style="color: #94a3b8; font-weight: bold; margin: 0 0 10px 0;">ROOM CODE</p>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="display-room-code" readonly style="flex: 1; text-align: center; letter-spacing: 3px; font-size: 1.5rem; background: rgba(0,0,0,0.5); border: 2px dashed var(--raid-red); border-radius: 8px; color: var(--raid-red); outline: none;"> 
+                    <button onclick="copyData('display-room-code')" class="action-btn create-btn" style="width: auto; margin: 0;">COPY</button>
+                </div>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; flex: 1; border: 1px solid rgba(255,255,255,0.1); min-width: 250px;">
+                <p style="color: #94a3b8; font-weight: bold; margin: 0 0 10px 0;">INVITE LINK</p>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="display-room-link" readonly style="flex: 1; text-align: center; font-size: 0.9rem; background: rgba(0,0,0,0.5); border: 1px solid #64748b; border-radius: 8px; color: #fff; outline: none;">
+                    <button onclick="copyData('display-room-link')" class="action-btn join-btn" style="width: auto; margin: 0;">COPY</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="lobby-players" style="display: flex; gap: 20px; justify-content: center; margin: 30px 0; flex-wrap: wrap;">
+            </div>
+
+        <button id="start-raid-btn" class="action-btn create-btn" style="width: 50%; max-width: 300px; margin: 0 auto; display: none;" onclick="startRaid()">START RAID</button>
+        <p id="wait-host-msg" style="color: #cbd5e1; font-weight: bold; margin-bottom: 30px;">Waiting for Host to start...</p>
+      </div>
+
     </div>
 
     <div id="game-ui" style="display: none; flex-direction: column; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; background: #050505; z-index: 200;">
@@ -215,8 +137,7 @@
             <div class="brand-logo">TURBO</div>
             <div class="vs-banner">COLOSSEUM RAID</div>
             <div class="header-controls">
-                <div class="room-badge" id="room-code-display">ROOM: ----</div>
-                <button class="header-copy-btn" onclick="copyData('display-room-link')">COPY LINK</button>
+                <div class="room-badge" id="room-code-display-game">ROOM: ----</div>
             </div>
         </header>
 
@@ -227,25 +148,33 @@
                 <div id="log-content">Establishing connection...</div>
             </div>
 
+            <div id="enrage-warning" style="display: none; position: absolute; top: 30%; color: var(--raid-red); font-size: 4rem; font-weight: 900; font-family: monospace; text-shadow: 0 0 30px red; z-index: 50; animation: pulseFlame 0.5s infinite alternate;">ENRAGED!</div>
+
             <div id="boss-hp-container">
                 <div id="boss-hp-fill"></div>
                 <div id="boss-hp-text">5000 / 5000</div>
             </div>
 
             <div id="boss-entity">
-                <div class="boss-wing-left"></div>
-                <div class="boss-wing-right"></div>
-                <div class="boss-hull"></div>
-                <div class="boss-core"></div>
+                <div class="boss-glow"></div>
+                <div class="boss-sprite"></div>
             </div>
 
             <div id="players-container"></div>
+            
+            <div id="timer-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 8rem; font-weight: 900; color: var(--raid-red); text-shadow: 0 4px 20px rgba(225, 29, 72, 0.8); z-index: 500; display: none;">5</div>
         </div>
 
         <div id="typing-console">
-            <div id="text-window">
-                <div id="target-text">Loading the ancient lore...</div>
+            <div id="combo-meter">
+                <div style="font-size: 0.8rem; color: #64748b; font-weight: bold; letter-spacing: 2px;">COMBO</div>
+                <div id="combo-count" style="font-size: 2.5rem; font-weight: 900; color: #cbd5e1;">x1.0</div>
             </div>
+
+            <div id="text-window">
+                <div id="text-content">Loading the ancient lore...</div>
+            </div>
+            
             <input type="text" id="input-field" autocomplete="off" spellcheck="false" placeholder="> TYPE TO ATTACK _" />
         </div>
 
@@ -259,12 +188,10 @@
         function openModal(id) { document.getElementById(id).style.display = 'flex'; }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         function copyData(id) { 
-            if(id === 'display-room-link') {
-                const url = window.location.origin + window.location.pathname + '?room=' + currentRoomCode;
-                navigator.clipboard.writeText(url);
-            } else {
-                const c = document.getElementById(id); c.select(); document.execCommand('copy'); 
-            }
+            const c = document.getElementById(id); 
+            if (!c) return;
+            c.select(); document.execCommand('copy'); 
+            
             const toast = document.getElementById('copy-toast'); toast.innerText = "Copied!";
             toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000);
         }

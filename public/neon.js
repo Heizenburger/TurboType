@@ -22,10 +22,39 @@ let peakBurstWPM = 0;
 let sessionTotalWpmSum = 0;
 let roundCountLogged = 0;
 
+// --- 0. FETCH GLOBAL LEADERBOARDS ---
+async function fetchLeaderboards() {
+    try {
+        const res = await fetch('/api/leaderboards');
+        const data = await res.json();
+        let html = '';
+        data.forEach((user, index) => {
+            const stats = user.games && user.games.neonRoyale ? user.games.neonRoyale : { played: 0, wins: 0 };
+            const played = stats.played;
+            const wins = stats.wins;
+            const ratio = played > 0 ? Math.round((wins / played) * 100) : 0;
+            
+            html += `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); background: ${index % 2 === 0 ? 'rgba(0,0,0,0.2)' : 'transparent'};">
+                    <td style="padding: 12px; font-weight: bold; color: white;">${user.gamertag}</td>
+                    <td style="padding: 12px; color: #06b6d4; font-weight: 900;">${user.skillScore || 0}</td>
+                    <td style="padding: 12px; color: #cbd5e1; text-align: center;">${played}</td>
+                    <td style="padding: 12px; color: #10b981; text-align: center;">${ratio}%</td>
+                </tr>
+            `;
+        });
+        document.getElementById('leaderboard-body').innerHTML = html || '<tr><td colspan="4" style="text-align:center; padding: 20px;">No pilots found.</td></tr>';
+    } catch(e) {
+        console.error("Leaderboard error:", e);
+        document.getElementById('leaderboard-body').innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ef4444; padding: 20px;">Error loading leaderboard.</td></tr>';
+    }
+}
+
 // --- 1. LOBBY & INITIALIZATION ---
 function hostRoom() {
     isHost = true;
-    socket.emit('createRoom', { name: playerName, gameMode: 'neonRoyale' });
+    const roomSize = parseInt(document.getElementById('room-size').value) || 10;
+    socket.emit('createRoom', { name: playerName, gameMode: 'neonRoyale', roomSize: roomSize });
 }
 
 function joinExistingRoom() {
@@ -47,6 +76,8 @@ socket.on('roomCreated', (data) => {
     document.getElementById('waiting-screen').style.display = 'block';
     
     document.getElementById('display-room-code').value = currentRoomCode;
+    document.getElementById('max-player-count').innerText = data.roomSize || 10;
+    
     const shareableLink = `${window.location.origin}${window.location.pathname}?room=${currentRoomCode}`;
     document.getElementById('display-room-link').value = shareableLink;
     
@@ -54,15 +85,29 @@ socket.on('roomCreated', (data) => {
     localStorage.setItem('activeRoomUrl', window.location.href);
 });
 
+socket.on('roomJoinedSuccess', (data) => {
+    currentRoomCode = data.roomCode;
+    document.getElementById('lobby').style.display = 'none';
+    document.getElementById('waiting-screen').style.display = 'block';
+
+    document.getElementById('display-room-code').value = currentRoomCode;
+    document.getElementById('max-player-count').innerText = data.roomSize || 10;
+
+    const shareableLink = `${window.location.origin}${window.location.pathname}?room=${currentRoomCode}`;
+    document.getElementById('display-room-link').value = shareableLink;
+
+    window.history.pushState({ room: currentRoomCode }, '', `?room=${currentRoomCode}`);
+    localStorage.setItem('activeRoomUrl', window.location.href);
+});
+
 socket.on('roomError', (msg) => {
     const errObj = document.getElementById('room-error');
     errObj.innerText = msg; errObj.style.display = 'block';
-    if (msg.includes('not found') || msg.includes('expired') || msg.includes('progress')) {
+    if (msg.includes('not found') || msg.includes('expired') || msg.includes('progress') || msg.includes('full')) {
         localStorage.removeItem('activeRoomUrl');
     }
 });
 
-// Update the 10-player waiting list
 socket.on('playerJoinedLobby', (data) => {
     const list = document.getElementById('lobby-player-list');
     document.getElementById('player-count').innerText = data.players.length;
@@ -74,7 +119,6 @@ socket.on('playerJoinedLobby', (data) => {
     }
 });
 
-// Host initiates the Bot Backfill & starts the game
 function startNeonMatch() {
     const diff = document.getElementById('bot-difficulty').value;
     socket.emit('startNeonRoyale', { roomCode: currentRoomCode, botDifficulty: diff });
@@ -85,12 +129,37 @@ socket.on('neonGameStarting', () => {
     document.getElementById('waiting-screen').style.display = 'none';
     document.getElementById('ui-container').style.display = 'none';
     document.getElementById('game-ui').style.display = 'flex';
-    document.getElementById('room-code-display').innerText = 'ROOM: ' + currentRoomCode;
+
+    const overlay = document.getElementById('neon-timer-overlay');
+    if(overlay) {
+        overlay.innerText = '5';
+        overlay.style.display = 'block';
+    }
+    document.getElementById('typing-console').style.background = 'transparent';
+    document.getElementById('typing-console').style.opacity = '0.2';
+    document.getElementById('player-grid').style.opacity = '0.2';
+});
+
+socket.on('neonCountdownTick', (data) => {
+    const overlay = document.getElementById('neon-timer-overlay');
+    if(!overlay) return;
+    if(data.timer > 0) {
+        overlay.innerText = data.timer;
+    } else {
+        overlay.innerText = 'GO!';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 500);
+    }
 });
 
 socket.on('neonRoundStart', (data) => {
     document.getElementById('intermission-overlay').style.display = 'none';
-    document.getElementById('round-display').innerText = `ROUND ${data.round} / 9`;
+    document.getElementById('neon-timer-overlay').style.display = 'none';
+    document.getElementById('typing-console').style.opacity = '1';
+    document.getElementById('player-grid').style.opacity = '1';
+
+    document.getElementById('round-display').innerText = `ROUND ${data.round}`;
     document.getElementById('timer-display').innerText = data.timer;
     
     playersState = data.players;
@@ -104,11 +173,16 @@ socket.on('neonRoundStart', (data) => {
         isPlaying = true;
         startTime = Date.now();
         lastWordCompleteTime = Date.now();
+        
         document.getElementById('live-typing-display').innerText = "";
+        document.getElementById('live-typing-display').style.display = 'flex';
+        document.getElementById('words-left-container').style.display = 'block';
         enableKeyboard();
     } else {
-        isPlaying = false; // Spectator mode for eliminated players
+        isPlaying = false; // SPECTATOR MODE
         document.getElementById('hidden-type-input').disabled = true;
+        document.getElementById('live-typing-display').style.display = 'none';
+        document.getElementById('words-left-container').style.display = 'none';
     }
     
     document.getElementById('words-left-count').innerText = targetWords.length;
@@ -116,9 +190,8 @@ socket.on('neonRoundStart', (data) => {
     updateGrid();
 });
 
-// --- 3. DYNAMIC 10-PLAYER GRID ENGINE ---
+// --- 3. DYNAMIC PLAYER GRID ENGINE ---
 function getAvatar(player) {
-    // If bot, seed is their name. If human, check DB or fallback to name seed.
     let seed = player.isBot ? player.name : `Bot${player.name}`;
     return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
 }
@@ -130,20 +203,20 @@ function updateGrid() {
     let survivorList = activeSurvivors.map(id => playersState[id]);
     let eliminatedList = Object.values(playersState).filter(p => !activeSurvivors.includes(p.id));
     
-    // Sort survivors by progress, then WPM
     survivorList.sort((a,b) => {
         if (a.progress !== b.progress) return b.progress - a.progress;
         return b.wpm - a.wpm;
     });
     
-    // Sort eliminated players by rank (10th at the bottom)
     eliminatedList.sort((a,b) => (b.rank || 10) - (a.rank || 10));
     
-    // Render Survivors (Live Danger Zone Calc)
     survivorList.forEach((p, index) => {
         const rank = index + 1;
         const isMe = p.id === socket.id ? 'is-me' : '';
         const isDanger = (rank === survivorList.length && survivorList.length > 1) ? 'danger-zone' : '';
+        
+        const wordsCount = targetWords.length ? Math.floor(p.progress * targetWords.length) : 0;
+        const wordsBadgeHtml = !isPlaying ? `<div class="words-badge">${wordsCount}/${targetWords.length} W</div>` : '';
         
         html += `
             <div class="status-capsule ${isMe} ${isDanger}" id="capsule-${p.id}">
@@ -155,14 +228,17 @@ function updateGrid() {
                 <div class="progress-track">
                     <div class="progress-fill" style="width: ${p.progress * 100}%"></div>
                 </div>
+                ${wordsBadgeHtml}
                 <div class="wpm-badge">${Math.round(p.wpm)} WPM</div>
             </div>
         `;
     });
     
-    // Render Eliminated Players
     eliminatedList.forEach(p => {
         const isMe = p.id === socket.id ? 'is-me' : '';
+        const wordsCount = targetWords.length ? Math.floor(p.progress * targetWords.length) : 0;
+        const wordsBadgeHtml = !isPlaying ? `<div class="words-badge">${wordsCount}/${targetWords.length} W</div>` : '';
+
         html += `
             <div class="status-capsule eliminated ${isMe}" id="capsule-${p.id}">
                 <div class="eliminated-stamp">ELIMINATED</div>
@@ -174,6 +250,7 @@ function updateGrid() {
                 <div class="progress-track">
                     <div class="progress-fill" style="width: ${p.progress * 100}%"></div>
                 </div>
+                ${wordsBadgeHtml}
                 <div class="wpm-badge">${Math.round(p.wpm)} WPM</div>
             </div>
         `;
@@ -182,15 +259,8 @@ function updateGrid() {
     grid.innerHTML = html;
 }
 
-// Live Updates from Server
-socket.on('neonTimerTick', (data) => {
-    document.getElementById('timer-display').innerText = data.timer;
-});
-
-socket.on('neonBotUpdate', (data) => {
-    playersState = data.players;
-    updateGrid();
-});
+socket.on('neonTimerTick', (data) => { document.getElementById('timer-display').innerText = data.timer; });
+socket.on('neonBotUpdate', (data) => { playersState = data.players; updateGrid(); });
 
 socket.on('opponentProgress', (data) => {
     if (playersState[data.id]) {
@@ -205,18 +275,19 @@ socket.on('neonElimination', (data) => {
     activeSurvivors = data.survivors;
     playersState[data.eliminated.id] = data.eliminated;
     
-    // Log stats for final math
     if (playersState[socket.id]) {
         sessionTotalWpmSum += playersState[socket.id].wpm;
         roundCountLogged++;
     }
 
     if (data.eliminated.id === socket.id) {
-        isPlaying = false;
+        isPlaying = false; // Swapping to Spectator Mode
         document.getElementById('hidden-type-input').disabled = true;
+        document.getElementById('live-typing-display').style.display = 'none';
+        document.getElementById('words-left-container').style.display = 'none';
+        renderText(); 
     }
     
-    // Intermission Transition
     const overlay = document.getElementById('intermission-overlay');
     document.getElementById('intermission-subtitle').innerText = `${data.eliminated.name} ELIMINATED`;
     document.getElementById('intermission-timer').innerText = "5";
@@ -229,7 +300,7 @@ socket.on('neonIntermissionTick', (data) => {
     document.getElementById('intermission-timer').innerText = data.timer;
 });
 
-// --- 5. TYPING ENGINE ---
+// --- 5. TYPING ENGINE & UI RENDER ---
 function enableKeyboard() {
     const input = document.getElementById('hidden-type-input');
     input.value = ""; input.disabled = false; input.focus();
@@ -251,7 +322,6 @@ function handleTyping(e) {
 
     liveBox.innerText = val;
 
-    // Typo Detected
     if (!currentWord.startsWith(val.trim())) {
         currentWordEl.classList.add('error'); 
         liveBox.style.borderColor = '#ef4444'; liveBox.style.color = '#ef4444';
@@ -261,7 +331,6 @@ function handleTyping(e) {
         liveBox.style.borderColor = '#06b6d4'; liveBox.style.color = 'white';
     }
 
-    // Word Completed
     if (val.endsWith(" ")) {
         if (val.trim() === currentWord) {
             let now = Date.now(); 
@@ -284,9 +353,6 @@ function handleTyping(e) {
             
             let myProgress = currentWordIndex / targetWords.length;
             
-            // Sync to server
-            playersState[socket.id].progress = myProgress;
-            playersState[socket.id].wpm = currentWPM;
             socket.emit('updateProgress', { roomCode: currentRoomCode, progress: myProgress, wpm: currentWPM, id: socket.id });
             
             updateScroll(); 
@@ -306,12 +372,29 @@ function updateScroll() {
 function renderText() {
     const html = targetWords.map((w, i) => {
         let classes = ['word'];
-        if (i < currentWordIndex) classes.push('correct');
-        else if (i === currentWordIndex) classes.push('current');
+        if (isPlaying) {
+            if (i < currentWordIndex) classes.push('correct');
+            else if (i === currentWordIndex) classes.push('current');
+        } else {
+            classes.push('spectator-word');
+        }
         return `<span class="${classes.join(' ')}" id="word-${i}">${w}</span>`; 
     }).join("");
+    
     document.getElementById('text-content').innerHTML = html;
-    updateScroll(); 
+    
+    if (isPlaying) {
+        updateScroll(); 
+        document.getElementById('text-window').style.height = '3.6em';
+        document.getElementById('text-window').style.overflow = 'hidden';
+        document.getElementById('text-window').style.overflowY = 'hidden';
+    } else {
+        // SPECTATOR SCROLL EXPANSION
+        document.getElementById('text-content').style.transform = `translateY(0px)`;
+        document.getElementById('text-window').style.height = 'auto';
+        document.getElementById('text-window').style.maxHeight = '220px';
+        document.getElementById('text-window').style.overflowY = 'auto';
+    }
 }
 
 // --- 6. END GAME & LEADERBOARD ---
@@ -325,7 +408,6 @@ socket.on('neonGameOver', async (data) => {
     document.getElementById('intermission-overlay').style.display = 'none';
     document.getElementById('end-screen').style.display = 'flex';
     
-    // Build Leaderboard HTML
     const lbBody = document.getElementById('final-leaderboard-body');
     let lbHtml = '';
     data.leaderboard.forEach(p => {
@@ -341,20 +423,17 @@ socket.on('neonGameOver', async (data) => {
     });
     lbBody.innerHTML = lbHtml;
 
-    // Calculate overall session averages for Human Player to save
     let avgWpm = roundCountLogged > 0 ? Math.round(sessionTotalWpmSum / roundCountLogged) : 0;
     const acc = Math.max(0, Math.round(((totalKeystrokes - errors) / Math.max(1, totalKeystrokes)) * 100)) || 0;
     
-    // Determine if Player Won the match
     let myFinalData = data.leaderboard.find(p => p.id === socket.id);
-    let myRank = myFinalData ? myFinalData.rank : 10;
+    let myRank = myFinalData ? myFinalData.rank : (document.getElementById('room-size').value || 10);
     
     document.getElementById('save-status').innerText = "Encrypting Dossier Logs...";
 
     try {
         const res = await fetch('/api/game/end', {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-            // CRITICAL: We pass 1 point if the player achieved Rank #1
             body: JSON.stringify({ gameMode: 'neonRoyale', wpm: avgWpm, accuracy: acc, burstSpeed: peakBurstWPM, score: myRank === 1 ? 1 : 0 })
         });
         const finalData = await res.json();
@@ -366,8 +445,19 @@ socket.on('neonGameOver', async (data) => {
     }
 });
 
-// --- ANTI-CHEAT ---
+// --- UTILS & ANTI-CHEAT ---
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+function copyData(id) { 
+    const c = document.getElementById(id); c.select(); document.execCommand('copy'); 
+    const toast = document.getElementById('copy-toast'); toast.innerText = "Copied!";
+    toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+    fetchLeaderboards(); // Init Leaderboard
+
     const urlParams = new URLSearchParams(window.location.search);
     const roomFromUrl = urlParams.get('room');
     if (roomFromUrl) {
