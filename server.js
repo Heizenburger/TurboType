@@ -27,21 +27,25 @@ mongoose.connect(process.env.MONGO_URI)
     .catch(err => console.error('MongoDB connection error:', err));
 
 
-// --- EMAIL TRANSPORTER SETUP ---
+// --- RENDER-SAFE EMAIL TRANSPORTER SETUP ---
 let transporter;
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        family: 4, // <-- THE MAGIC FIX: Forces Node to use IPv4 instead of IPv6
+        port: 587, // Switch to 587 (STARTTLS) instead of 465 (SSL)
+        secure: false, // Must be false for port 587
+        requireTLS: true, // Force TLS connection
         auth: { 
             user: process.env.EMAIL_USER, 
             pass: process.env.EMAIL_PASS.replace(/\s/g, '') 
+        },
+        tls: {
+            ciphers: 'SSLv3',
+            rejectUnauthorized: false // Helps bypass strict internal network proxies
         }
     });
     
-    // Verify connection on startup to catch auth errors immediately
+    // Verify connection on startup
     transporter.verify(function(error, success) {
         if (error) {
             console.error("⚠️ Nodemailer Connection Error:", error);
