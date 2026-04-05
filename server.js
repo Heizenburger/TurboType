@@ -8,6 +8,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 const User = require('./models/User'); 
 
 const app = express();
@@ -26,10 +27,68 @@ mongoose.connect(process.env.MONGO_URI)
     .catch(err => console.error('MongoDB connection error:', err));
 
 
+// --- EMAIL TRANSPORTER SETUP ---
+let transporter;
+if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    transporter = nodemailer.createTransport({
+        service: 'gmail', // Let Nodemailer handle the strict port/host routing automatically
+        auth: { 
+            user: process.env.EMAIL_USER, 
+            pass: process.env.EMAIL_PASS.replace(/\s/g, '') 
+        }
+    });
+    console.log("📧 Email Transporter Configured Successfully.");
+} else {
+    console.warn("\n⚠️ WARNING: No EMAIL_USER or EMAIL_PASS found in .env.");
+    console.warn("📧 Email Simulation Mode Active: OTPs and Passwords will print here.\n");
+}
+
+const otpStore = {}; 
+
 // --- AUTHENTICATION API ENDPOINTS ---
+app.post('/api/send-otp', async (req, res) => {
+    const { email, gamertag } = req.body;
+    try {
+        const existingUser = await User.findOne({ $or: [{ email }, { gamertag }] });
+        if (existingUser) return res.status(400).json({ error: "Email or Gamertag already in use." });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString(); 
+        otpStore[email] = { otp, expires: Date.now() + 10 * 60000 }; 
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER || 'system@turbotype.com',
+            to: email,
+            subject: 'TurboType | Security Clearance OTP',
+            text: `Welcome to TurboType.\n\nYour initialization security code is: ${otp}\n\nThis code expires in 10 minutes.`
+        };
+
+        if (transporter) {
+            try {
+                await transporter.sendMail(mailOptions);
+            } catch (mailErr) {
+                console.error("Nodemailer Auth Error:", mailErr);
+                return res.status(500).json({ error: "Email configuration error. Check server logs." });
+            }
+        } else {
+            console.log(`\n[EMAIL SIMULATION] Sent to: ${email} | OTP: ${otp}\n`);
+        }
+
+        res.json({ message: "OTP sent successfully." });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to process request." });
+    }
+});
+
 app.post('/api/register', async (req, res) => {
     try {
-        const { email, gamertag, password, avatar } = req.body;
+        const { email, gamertag, password, avatar, otp } = req.body;
+        
+        const storedData = otpStore[email];
+        if (!storedData || storedData.otp !== otp) return res.status(400).json({ error: "Invalid or expired OTP." });
+        if (Date.now() > storedData.expires) return res.status(400).json({ error: "OTP has expired." });
+
+        delete otpStore[email];
+
         const existingUser = await User.findOne({ $or: [{ email }, { gamertag }] });
         if (existingUser) return res.status(400).json({ error: "Email or Gamertag already in use." });
 
@@ -58,6 +117,42 @@ app.post('/api/login', async (req, res) => {
         res.json({ token, gamertag: user.gamertag, avatar: user.avatar });
     } catch (error) {
         res.status(500).json({ error: "Server error during login." });
+    }
+});
+
+app.post('/api/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+        
+        if (!user) return res.status(404).json({ error: "Email not found in the mainframe." });
+
+        const newPassword = Math.random().toString(36).slice(-8);
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER || 'system@turbotype.com',
+            to: email,
+            subject: 'TurboType | Password Reset Protocol',
+            text: `Your security override was successful.\n\nYour new temporary password is: ${newPassword}\n\nPlease log in and update this from your Pilot Dossier immediately.`
+        };
+
+        if (transporter) {
+            try {
+                await transporter.sendMail(mailOptions);
+            } catch (mailErr) {
+                console.error("Nodemailer Auth Error:", mailErr);
+                return res.status(500).json({ error: "Email configuration error. Check server logs." });
+            }
+        } else {
+            console.log(`\n[EMAIL SIMULATION] Sent to: ${email} | NEW PASSWORD: ${newPassword}\n`);
+        }
+
+        res.json({ message: "New password dispatched to your email." });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to process password reset." });
     }
 });
 
@@ -112,7 +207,6 @@ app.post('/api/game/end', authenticateToken, async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        // Include neonRoyale in the total calculation
         const totalGames = user.games.turboRacing.played + user.games.samuraiTyping.played + user.games.syntaxArena.played + user.games.colosseumRaid.played + (user.games.neonRoyale ? user.games.neonRoyale.played : 0) + 1;
             
         user.globalMetrics.avgWpm = Math.round(((user.globalMetrics.avgWpm * (totalGames - 1)) + wpm) / totalGames);
@@ -134,7 +228,7 @@ app.post('/api/game/end', authenticateToken, async (req, res) => {
         } else if (gameMode === 'neonRoyale') {
             if(!user.games.neonRoyale) user.games.neonRoyale = { played: 0, wins: 0 };
             user.games.neonRoyale.played += 1;
-            if (score === 1) user.games.neonRoyale.wins += 1; // Score 1 implies Rank #1 Victory
+            if (score === 1) user.games.neonRoyale.wins += 1; 
         }
 
         let wpmScore = Math.min((user.globalMetrics.avgWpm / 150) * 400, 400);
@@ -240,14 +334,12 @@ async function startNeonRound(roomCode) {
     const room = activeRooms[roomCode];
     if (!room) return;
 
-    // Difficulty increases each round (faster timers, harder text)
     const diff = room.round < 4 ? 1 : (room.round < 7 ? 2 : 3);
     const text = await generateTypingText(diff, 2);
     
     room.roundTimer = 60 - (room.round * 4); 
     if(room.roundTimer < 20) room.roundTimer = 20;
 
-    // Reset Progress
     room.survivors.forEach(id => {
         if(room.players[id]) {
             room.players[id].progress = 0;
@@ -263,7 +355,6 @@ async function startNeonRound(roomCode) {
         text: text
     });
 
-    // Bot Update Loop
     if(room.botInterval) clearInterval(room.botInterval);
     room.botInterval = setInterval(() => {
         let updated = false;
@@ -271,7 +362,7 @@ async function startNeonRound(roomCode) {
             const p = room.players[id];
             if(p && p.isBot && p.progress < 1) {
                 let speed = room.botDifficulty === 'Hard' ? 0.04 : (room.botDifficulty === 'Medium' ? 0.025 : 0.015);
-                speed += (Math.random() * 0.015 - 0.005); // Organic variance
+                speed += (Math.random() * 0.015 - 0.005); 
                 p.progress = Math.min(1, p.progress + speed);
                 p.wpm = (p.progress * 100) + Math.random() * 20;
                 updated = true;
@@ -280,7 +371,6 @@ async function startNeonRound(roomCode) {
         if(updated) io.to(roomCode).emit('neonBotUpdate', { players: room.players });
     }, 1000);
 
-    // Timer Loop
     if(room.timerInterval) clearInterval(room.timerInterval);
     room.timerInterval = setInterval(() => {
         room.roundTimer--;
@@ -300,7 +390,6 @@ function handleNeonElimination(roomCode) {
     const room = activeRooms[roomCode];
     if(!room) return;
 
-    // Find the player with the lowest score (Progress mostly, WPM tiebreaker)
     let lowestId = room.survivors[0];
     let lowestScore = 999999;
     room.survivors.forEach(id => {
@@ -319,7 +408,6 @@ function handleNeonElimination(roomCode) {
     });
 
     if (room.survivors.length <= 1) {
-        // MATCH OVER
         if(room.survivors.length === 1) {
             room.players[room.survivors[0]].rank = 1;
         }
@@ -328,7 +416,6 @@ function handleNeonElimination(roomCode) {
             io.to(roomCode).emit('neonGameOver', { leaderboard });
         }, 3000);
     } else {
-        // INTERMISSION
         let intTimer = 5;
         room.round++;
         const intInterval = setInterval(() => {
@@ -345,8 +432,6 @@ function handleNeonElimination(roomCode) {
 
 // --- SOCKET.IO MULTIPLAYER ROUTING ---
 io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
-
     socket.on('requestSamuraiWave', async (data) => {
         const wave = data.wave || 1;
         const words = await generateSamuraiWords(wave);
@@ -371,8 +456,6 @@ io.on('connection', (socket) => {
         if (data.gameMode === 'colosseumRaid') {
             const loreText = await generateTypingText(3, 3);
             activeRooms[roomCode].boss = { maxHp: BOSS_MAX_HP, hp: BOSS_MAX_HP, activeLore: loreText };
-        } else if (data.gameMode === 'neonRoyale') {
-            // Neon Royale specific initialization handled in start
         }
 
         socket.join(roomCode);
@@ -420,7 +503,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // NEW: Neon Royale Boot Sequence
     socket.on('startNeonRoyale', (data) => {
         const room = activeRooms[data.roomCode];
         if (room && room.gameMode === 'neonRoyale') {
@@ -429,7 +511,6 @@ io.on('connection', (socket) => {
             room.round = 1;
             room.survivors = Object.keys(room.players);
 
-            // Backfill with bots up to 10 players
             const botNames = ['Zero', 'Alpha', 'Bravo', 'Nexus', 'Cypher', 'Glitch', 'Proxy', 'Vector', 'Ghost'];
             while (room.survivors.length < 10) {
                 let botId = 'bot_' + Math.random().toString(36).substr(2, 5);
@@ -448,8 +529,8 @@ io.on('connection', (socket) => {
         if (room && room.players[socket.id]) {
             room.players[socket.id].progress = data.progress;
             room.players[socket.id].wpm = data.wpm;
-            socket.to(data.roomCode).emit('opponentProgress', data);
         }
+        socket.to(data.roomCode).emit('opponentProgress', data);
     });
 
     socket.on('syntaxKeystroke', (data) => {
