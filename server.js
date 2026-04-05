@@ -32,16 +32,17 @@ let transporter;
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 587, // Switch to 587 (STARTTLS) instead of 465 (SSL)
+        port: 587, // STARTTLS port
         secure: false, // Must be false for port 587
         requireTLS: true, // Force TLS connection
+        family: 4, // <-- THE MAGIC FIX: Forces Node to use IPv4 instead of IPv6!
         auth: { 
             user: process.env.EMAIL_USER, 
             pass: process.env.EMAIL_PASS.replace(/\s/g, '') 
         },
         tls: {
             ciphers: 'SSLv3',
-            rejectUnauthorized: false // Helps bypass strict internal network proxies
+            rejectUnauthorized: false
         }
     });
     
