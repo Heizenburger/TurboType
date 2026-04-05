@@ -9,9 +9,31 @@ let isGameOver = false;
 
 // --- ENGINE VARIABLES ---
 let game, sceneRef;
-let player, background;
+let player, ground;
 let enemiesGroup, projectilesGroup;
-const LANES = [400, 500, 600]; // 3 Zombie horde lanes
+
+// --- UNIFIED PARALLAX CONFIGURATION ---
+// Structure:
+// y: Vertical position on screen
+// h: Height of the tileSprite (prevents vertical repeating)
+// originY: Anchors the image to its bottom (1) or center (0.5)
+const PARALLAX_CONFIG = [
+    { key: 'sky', file: 'Sky.png', speed: 0.00, y: 360, h: 720, originY: 0.5, scale: 1 },
+    { key: 'clouds', file: 'Clouds.png', speed: 0.02, y: 300, h: 300, originY: 0.5, scale: 2 },
+    { key: 'fuji', file: 'Fuji.png', speed: 0.05, y: 550, h: 250, originY: 1, scale: 1.5 },
+    { key: 'trees_far', file: 'Trees.png', speed: 0.15, y: 580, h: 200, originY: 1, scale: 1.5 },
+    { key: 'bg_trees', file: 'BackgroundTrees.png', speed: 0.30, y: 620, h: 100, originY: 1, scale: 2 },
+    { key: 'shrine_mult', file: 'Shrine_Multiple.png', speed: 0.40, y: 580, h: 200, originY: 1, scale: 1.2 },
+    { key: 'shrine_single', file: 'Shrine_Single.png', speed: 0.45, y: 600, h: 200, originY: 1, scale: 1.3 },
+    { key: 'house', file: 'House.png', speed: 0.55, y: 620, h: 150, originY: 1, scale: 1.2 },
+    { key: 'ground', file: 'Ground.png', speed: 1.00, y: 720, h: 150, originY: 1, scale: 2 },
+    { key: 'grass', file: 'Gras.png', speed: 1.20, y: 720, h: 50, originY: 1, scale: 3 }
+];
+
+// --- COMBAT ZONES ---
+// Adjusted lanes to fit visually inside the "dirt" section of the Ground.png
+const LANES = [580, 640, 700]; 
+const MELEE_RANGE = 250; 
 const MAX_ENEMIES_ON_SCREEN = 5;
 
 // --- TARGETING SYSTEM ---
@@ -19,8 +41,7 @@ let activeTarget = null;
 let currentWaveWords = [];
 let spawnEvent;
 
-// 1. Fetch Player Data & Init (BULLETPROOFED)
-// 1. Fetch Player Data & Init (WITH AUTO-REDIRECT FIX)
+// 1. Fetch Player Data & Init
 async function initializeGame() {
     try {
         const res = await fetch('/api/account', { 
@@ -35,12 +56,9 @@ async function initializeGame() {
             document.getElementById('loading-screen').style.display = 'none';
             document.getElementById('game-ui').style.display = 'block';
             
-            // Start Phaser
             game = new Phaser.Game(config);
         } else {
             console.error("Account fetch failed with status:", res.status);
-            
-            // If the token is dead or unauthorized, instantly kick them to login
             if (res.status === 401 || res.status === 403) {
                 localStorage.clear();
                 window.location.href = 'index.html';
@@ -62,7 +80,6 @@ function applyDifficultyScaling(skill) {
     else ENEMY_DAMAGE = 20; // 5 hits
 }
 
-// 2. Wave Management (Socket to Server)
 function requestNextWave() {
     socket.emit('requestSamuraiWave', { wave: currentWave });
 }
@@ -71,29 +88,34 @@ socket.on('samuraiWaveData', (data) => {
     currentWaveWords = data.words;
     enemiesDefeatedInWave = 0;
     
-    // Announce Wave
     const announce = document.getElementById('wave-announcement');
     announce.innerText = `WAVE ${currentWave}`;
     announce.classList.add('show');
     setTimeout(() => announce.classList.remove('show'), 2000);
     document.getElementById('ui-wave').innerText = currentWave;
 
-    // Start Spawning
-    const spawnDelay = Math.max(1000, 3500 - (currentWave * 300)); // Gets faster every wave
+    const spawnDelay = Math.max(1000, 3500 - (currentWave * 300)); 
     if (spawnEvent) spawnEvent.remove();
     spawnEvent = sceneRef.time.addEvent({ delay: spawnDelay, callback: trySpawnEnemy, callbackScope: sceneRef, loop: true });
 });
 
-// 3. Phaser Configuration
 const config = {
     type: Phaser.AUTO, 
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 1280, height: 720 },
-    physics: { default: 'arcade' },
+    // Disabled Physics Debug to remove green boxes
+    physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
     scene: { preload: preload, create: create, update: update }
 };
 
 function preload () {
-    this.load.image('city', 'assets/bg.png'); 
+    // Dynamically load all files from the config array
+    PARALLAX_CONFIG.forEach(layer => {
+        // Fallback check: If the user doesn't have the file, Phaser handles it without crashing the whole game
+        this.load.image(layer.key, 'assets/' + layer.file);
+    });
+
+    this.load.image('kunai', 'assets/kunai.png');
+
     this.load.spritesheet('hero_idle', 'assets/player_idle.png', { frameWidth: 96, frameHeight: 96 });
     this.load.spritesheet('hero_run', 'assets/player_run.png', { frameWidth: 96, frameHeight: 96 });
     this.load.spritesheet('hero_attack', 'assets/player_attack.png', { frameWidth: 96, frameHeight: 96 });
@@ -101,60 +123,93 @@ function preload () {
 
 function create () {
     sceneRef = this;
-    background = this.add.tileSprite(640, 360, 1280, 720, 'city');
-    background.setAlpha(0.6); // Darken BG slightly for visibility
+
+    // Base background color (sky tint)
+    this.add.graphics().fillStyle(0xdff0d8, 1).fillRect(0, 0, 1280, 720).setDepth(-110);
+
+    // Build the Parallax Array
+    this.parallaxSprites = [];
+    PARALLAX_CONFIG.forEach((layer, index) => {
+        let depth = -100 + index; 
+        
+        // We use tileSprites for everything so they wrap infinitely horizontally
+        let sprite = this.add.tileSprite(640, layer.y, 1280, layer.h, layer.key);
+        
+        sprite.setDepth(depth);
+        sprite.setOrigin(0.5, layer.originY); // Anchor to bottom
+        if (layer.scale) sprite.setScale(layer.scale);
+        
+        sprite.parallaxSpeed = layer.speed;
+        this.parallaxSprites.push(sprite);
+    });
+
+    // Darken entire BG system slightly for pixel art depth
+    this.add.graphics().fillStyle(0x000000, 0.1).fillRect(0, 0, 1280, 720).setDepth(-50);
+
+    // Visual indicators for lanes (Disabled the horizontal lines for a cleaner look)
+    // let debugGraphics = this.add.graphics().setDepth(-40);
+    // debugGraphics.lineStyle(2, 0x334155, 0.4);
+    // LANES.forEach(y => debugGraphics.lineBetween(0, y, 1280, y));
 
     this.anims.create({ key: 'idle', frames: this.anims.generateFrameNumbers('hero_idle', { start: 0, end: 9 }), frameRate: 10, repeat: -1 });
     this.anims.create({ key: 'run', frames: this.anims.generateFrameNumbers('hero_run', { start: 0, end: 7 }), frameRate: 12, repeat: -1 });
     this.anims.create({ key: 'attack', frames: this.anims.generateFrameNumbers('hero_attack', { start: 0, end: 5 }), frameRate: 20, repeat: 0 });
 
-    player = this.physics.add.sprite(200, 500, 'hero_idle').setScale(2.5).play('idle');
+    // Place player in the middle lane
+    player = this.physics.add.sprite(MELEE_RANGE - 50, LANES[1], 'hero_idle').setScale(2.5).play('idle');
     player.body.setSize(30, 80); 
-    player.setDepth(500); // Lock player depth
+    player.setDepth(LANES[1]); // Lock player depth to middle lane
 
+    // Draw Melee range limit line (Dynamic VFX)
+    let attackLine = this.add.graphics().lineStyle(2, 0xef4444, 0.3).lineBetween(MELEE_RANGE, 550, MELEE_RANGE, 720).setDepth(800);
+    
     enemiesGroup = this.physics.add.group();
     projectilesGroup = this.physics.add.group();
-
-    // Generate Energy Projectile Texture dynamically
-    let graphics = this.add.graphics();
-    graphics.fillStyle(0x60a5fa, 1);
-    graphics.fillCircle(10, 10, 10);
-    graphics.generateTexture('energy_blast', 20, 20);
-    graphics.destroy();
 
     this.physics.add.overlap(player, enemiesGroup, takeDamage, null, this);
     this.physics.add.overlap(projectilesGroup, enemiesGroup, handleProjectileImpact, null, this);
     
     player.on('animationcomplete', anim => { if (anim.key === 'attack') player.play('idle'); }, this);
 
-    // Setup Typing Input
     const input = document.getElementById('target-input');
     input.focus();
     document.addEventListener('click', () => input.focus());
     this.input.keyboard.on('keydown', handleTyping);
 
-    // Start First Wave
     requestNextWave();
 }
 
-function update () {
+function update (time, delta) {
     if (isGameOver) return;
 
-    // Depth Sorting & Word Positioning
+    let baseParallaxSpeed = 0.5; 
+    let gameSpeed = currentWave * 0.1; 
+
+    // Move backgrounds safely without crashing
+    this.parallaxSprites.forEach(sprite => {
+        if (sprite.tilePositionX !== undefined && sprite.parallaxSpeed > 0) {
+            // Clouds drift independently, everything else moves based on game speed
+            if (sprite.texture.key === 'clouds') {
+                sprite.tilePositionX += sprite.parallaxSpeed; 
+            } else {
+                sprite.tilePositionX += (gameSpeed + baseParallaxSpeed) * sprite.parallaxSpeed;
+            }
+        }
+    });
+
     enemiesGroup.children.iterate(enemy => {
         if (enemy && enemy.active) {
-            enemy.setDepth(enemy.y); // Creates 3D perspective
+            enemy.setDepth(enemy.y); 
             
-            // Lock Text above enemy
             if (enemy.wordTextGroup) {
-                enemy.wordTextGroup.setPosition(enemy.x, enemy.y - 100);
+                // Keep the text slightly higher so it doesn't overlap the new ground
+                enemy.wordTextGroup.setPosition(enemy.x, enemy.y - 110);
                 enemy.wordTextGroup.setDepth(enemy.y + 1);
             }
 
-            // Animate based on distance
             let dist = Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y);
-            if (dist < 150 && enemy.anims.currentAnim.key !== 'attack') enemy.play('attack');
-            else if (dist >= 150 && enemy.anims.currentAnim.key !== 'run') enemy.play('run');
+            if (dist < MELEE_RANGE && enemy.anims.currentAnim.key !== 'attack') enemy.play('attack');
+            else if (dist >= MELEE_RANGE && enemy.anims.currentAnim.key !== 'run') enemy.play('run');
         }
     });
 }
@@ -162,7 +217,6 @@ function update () {
 function trySpawnEnemy() {
     if (isGameOver || enemiesGroup.countActive(true) >= MAX_ENEMIES_ON_SCREEN || currentWaveWords.length === 0) return;
 
-    // Pop a word from the wave array
     const spawnWord = currentWaveWords.pop();
     const laneY = LANES[Phaser.Math.Between(0, 2)];
 
@@ -171,12 +225,10 @@ function trySpawnEnemy() {
     let speedBase = 50 + (currentWave * 15);
     enemy.setVelocityX(-Phaser.Math.Between(speedBase, speedBase + 40));
     
-    // Setup Target Lock Text
     enemy.targetWord = spawnWord;
     enemy.typedIndex = 0;
     
-    // We use a container to hold the typed (Green) and untyped (White) text
-    enemy.wordTextGroup = sceneRef.add.container(enemy.x, enemy.y - 100);
+    enemy.wordTextGroup = sceneRef.add.container(enemy.x, enemy.y - 110);
     enemy.typedText = sceneRef.add.text(0, 0, "", { fontSize: '28px', fontStyle: 'bold', fill: '#34d399', stroke: '#000', strokeThickness: 4 }).setOrigin(1, 0.5);
     enemy.untypedText = sceneRef.add.text(0, 0, spawnWord, { fontSize: '28px', fontStyle: 'bold', fill: '#fff', stroke: '#000', strokeThickness: 4 }).setOrigin(0, 0.5);
     
@@ -188,12 +240,11 @@ function handleTyping(event) {
     if (isGameOver) return;
     
     let char = event.key.toUpperCase();
-    if (!/^[A-Z\-]$/.test(char)) return; // Ignore non-letters
+    if (!/^[A-Z\-]$/.test(char)) return;
 
     if (sessionStats.startTime === 0) sessionStats.startTime = Date.now();
     sessionStats.totalKeystrokes++;
 
-    // NO TARGET LOCKED: Search for an enemy starting with this letter
     if (!activeTarget) {
         let potentialTarget = null;
         enemiesGroup.children.iterate(enemy => {
@@ -208,14 +259,11 @@ function handleTyping(event) {
             sessionStats.correctKeystrokes++;
             updateEnemyText(activeTarget);
             
-            // Auto-complete 1-letter words immediately
             if (activeTarget.typedIndex === activeTarget.targetWord.length) {
                 executeAttack(activeTarget);
                 activeTarget = null;
             }
         }
-
-    // TARGET LOCKED: Check subsequent letters
     } else {
         let expectedChar = activeTarget.targetWord[activeTarget.typedIndex];
         
@@ -229,7 +277,6 @@ function handleTyping(event) {
                 activeTarget = null;
             }
         } else {
-            // Typo: Flash the enemy text red
             activeTarget.untypedText.setTint(0xff0000);
             setTimeout(() => { if (activeTarget && activeTarget.untypedText) activeTarget.untypedText.clearTint(); }, 200);
         }
@@ -243,14 +290,12 @@ function updateEnemyText(enemy) {
     enemy.typedText.setText(typed);
     enemy.untypedText.setText(untyped);
     
-    // Highlight active target
-    enemy.untypedText.setColor('#facc15'); // Yellow for target lock
+    enemy.untypedText.setColor('#facc15'); 
 }
 
 function executeAttack(target) {
     let dist = Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y);
     
-    // Calculate Burst
     let now = Date.now();
     let timeTakenMins = (now - sessionStats.lastWordTime) / 60000;
     if(sessionStats.lastWordTime > 0) {
@@ -261,14 +306,19 @@ function executeAttack(target) {
 
     player.play('attack');
     
-    if (dist < 200) {
-        // MELEE COMBAT
+    if (dist < MELEE_RANGE) {
+        player.setTint(0xfacc15); 
+        setTimeout(() => player.clearTint(), 100);
         killEnemy(target);
     } else {
-        // RANGED COMBAT (Energy Blast)
-        let proj = projectilesGroup.create(player.x + 40, player.y - 20, 'energy_blast');
+        let proj = projectilesGroup.create(player.x + 30, player.y - 15, 'kunai');
         proj.setDepth(target.depth + 1);
-        sceneRef.physics.moveToObject(proj, target, 1200); // Super fast projectile
+        
+        proj.setRotation(Phaser.Math.DegToRad(90));
+        // Ensure scale is reasonable for the kunai asset size
+        proj.setScale(0.8); 
+
+        sceneRef.physics.moveToObject(proj, target, 1500); // Super fast projectile
         proj.targetEnemy = target;
     }
 }
@@ -283,11 +333,14 @@ function handleProjectileImpact(proj, enemy) {
 function killEnemy(enemy) {
     if(!enemy.active) return;
     
-    // Visual FX
-    let flash = sceneRef.add.graphics();
-    flash.fillStyle(0xffffff, 1);
-    flash.fillCircle(enemy.x, enemy.y - 50, 40);
-    sceneRef.tweens.add({ targets: flash, alpha: 0, scale: 2, duration: 300, onComplete: () => flash.destroy() });
+    let graphics = sceneRef.add.graphics().setDepth(enemy.depth);
+    graphics.fillStyle(0xef4444, 0.8);
+    for (let i = 0; i < 8; i++) {
+        let px = enemy.x + Phaser.Math.Between(-30, 30);
+        let py = enemy.y - 40 + Phaser.Math.Between(-20, 20);
+        graphics.fillRect(px, py, Phaser.Math.Between(4, 10), Phaser.Math.Between(4, 10));
+    }
+    sceneRef.tweens.add({ targets: graphics, alpha: 0, scale: 2, duration: 400, onComplete: () => graphics.destroy() });
 
     enemy.wordTextGroup.destroy();
     enemy.destroy();
@@ -297,7 +350,6 @@ function killEnemy(enemy) {
     
     enemiesDefeatedInWave++;
     
-    // Check Wave Progression
     if (currentWaveWords.length === 0 && enemiesGroup.countActive(true) === 0) {
         currentWave++;
         requestNextWave();
@@ -307,7 +359,6 @@ function killEnemy(enemy) {
 async function takeDamage(playerObj, enemy) {
     if (!enemy.active) return;
     
-    // Clear lock if we get hit by our target
     if (activeTarget === enemy) activeTarget = null;
     
     enemy.wordTextGroup.destroy();
@@ -352,5 +403,4 @@ async function takeDamage(playerObj, enemy) {
     }
 }
 
-// Start sequence
 initializeGame();

@@ -1,5 +1,5 @@
 body {
-    background: #020617;
+    background: #000; /* Darker black for better contrast with pixel art */
     color: #e2e8f0;
     font-family: "Inter", sans-serif;
     margin: 0;

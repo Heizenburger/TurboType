@@ -31,7 +31,7 @@ mongoose.connect(process.env.MONGO_URI)
 let transporter;
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     transporter = nodemailer.createTransport({
-        service: 'gmail', // Let Nodemailer handle the strict port/host routing automatically
+        service: 'gmail', 
         auth: { 
             user: process.env.EMAIL_USER, 
             pass: process.env.EMAIL_PASS.replace(/\s/g, '') 
@@ -285,13 +285,23 @@ async function generateTypingText(difficultyLevel, lengthLevel = 2) {
     const seed = Math.floor(Math.random() * 100000);
     let prompt = "";
     
+    // STRICT TYPING RULES
+    const strictRules = "CRITICAL: Use ONLY basic ASCII keyboard characters (a-z, A-Z, 0-9, and standard punctuation like , . ! ? - ' \"). DO NOT use em-dashes (—), en-dashes (–), curly/smart quotes (“” ‘’), or any non-standard symbols.";
+
     if (difficultyLevel === 1) prompt = `Task [${seed}]: Generate a text containing exactly ${wordCount} words. USE ONLY extremely simple, 3-to-4 letter words. DO NOT use any punctuation marks whatsoever. The output MUST be 100% lowercase plain text consisting only of easy words.`;
-    else if (difficultyLevel === 2) prompt = `Task [${seed}]: Write a standard ${wordCount}-word paragraph about technology or racing. Use normal sentence structure, basic punctuation (commas, periods), and standard capitalization.`;
-    else prompt = `Task [${seed}]: Write an epic, dark-fantasy ${wordCount}-word paragraph for a boss battle. Include difficult vocabulary, hyphenated words, and dramatic punctuation like quotes and semicolons.`;
+    else if (difficultyLevel === 2) prompt = `Task [${seed}]: Write a standard ${wordCount}-word paragraph about technology or racing. Use normal sentence structure, basic punctuation (commas, periods), and standard capitalization. ${strictRules}`;
+    else prompt = `Task [${seed}]: Write an epic, dark-fantasy ${wordCount}-word paragraph for a boss battle. Include difficult vocabulary, hyphenated words, and dramatic punctuation like standard quotes and semicolons. ${strictRules}`;
 
     try {
         const result = await model.generateContent(prompt);
         let text = result.response.text().replace(/\n/g, ' ').trim();
+        
+        // THE CLEANUP: Forcefully convert any fancy typographic symbols into standard keyboard characters
+        text = text.replace(/[—–]/g, '-');   // Convert em/en-dashes to standard hyphen
+        text = text.replace(/[“”]/g, '"');   // Convert smart double quotes to standard quote
+        text = text.replace(/[‘’]/g, "'");   // Convert smart single quotes to standard apostrophe
+        text = text.replace(/…/g, '...');    // Convert ellipsis to three standard periods
+        
         if (difficultyLevel === 1) text = text.toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ');
         return text;
     } catch (error) {
@@ -361,10 +371,10 @@ async function startNeonRound(roomCode) {
         room.survivors.forEach(id => {
             const p = room.players[id];
             if(p && p.isBot && p.progress < 1) {
-                let speed = room.botDifficulty === 'Hard' ? 0.04 : (room.botDifficulty === 'Medium' ? 0.025 : 0.015);
-                speed += (Math.random() * 0.015 - 0.005); 
+                let speed = room.botDifficulty === 'Hard' ? 0.032 : (room.botDifficulty === 'Medium' ? 0.020 : 0.010);
+                speed += (Math.random() * 0.012 - 0.004); 
                 p.progress = Math.min(1, p.progress + speed);
-                p.wpm = (p.progress * 100) + Math.random() * 20;
+                p.wpm = (p.progress * 80) + Math.random() * 15; 
                 updated = true;
             }
         });
@@ -432,6 +442,8 @@ function handleNeonElimination(roomCode) {
 
 // --- SOCKET.IO MULTIPLAYER ROUTING ---
 io.on('connection', (socket) => {
+    console.log('A user connected:', socket.id);
+
     socket.on('requestSamuraiWave', async (data) => {
         const wave = data.wave || 1;
         const words = await generateSamuraiWords(wave);
@@ -448,6 +460,7 @@ io.on('connection', (socket) => {
             gameMode: data.gameMode || 'turboRacing',
             language: data.language || 'JavaScript', 
             raceLength: data.length || 2,
+            roomSize: data.roomSize || 10,
             status: 'waiting',
             players: { [socket.id]: { id: socket.id, name: data.name, progress: 0, wpm: 0, skillScore: pScore } },
             rematchVoters: new Set()
@@ -459,7 +472,7 @@ io.on('connection', (socket) => {
         }
 
         socket.join(roomCode);
-        socket.emit('roomCreated', { roomCode: roomCode, boss: activeRooms[roomCode].boss });
+        socket.emit('roomCreated', { roomCode: roomCode, roomSize: activeRooms[roomCode].roomSize, boss: activeRooms[roomCode].boss });
         
         if (data.gameMode === 'neonRoyale') {
             io.to(roomCode).emit('playerJoinedLobby', { players: Object.values(activeRooms[roomCode].players) });
@@ -474,35 +487,62 @@ io.on('connection', (socket) => {
         const user = await User.findOne({ gamertag: data.name });
         const pScore = user ? user.skillScore : 0;
 
-        room.players[socket.id] = { id: socket.id, name: data.name, progress: 0, wpm: 0, skillScore: pScore };
-        socket.join(data.roomCode);
+        if (room.gameMode === 'neonRoyale') {
+            if (Object.keys(room.players).length >= (room.roomSize || 10)) {
+                return socket.emit('roomError', 'Room is full.');
+            }
+            room.players[socket.id] = { id: socket.id, name: data.name, progress: 0, wpm: 0, skillScore: pScore };
+            socket.join(data.roomCode);
 
-        if (room.gameMode === 'turboRacing' && Object.keys(room.players).length === 2) {
-            room.status = 'playing';
-            const pIds = Object.keys(room.players);
-            const minScore = Math.min(room.players[pIds[0]].skillScore, room.players[pIds[1]].skillScore);
-            let diffLevel = minScore < 250 ? 1 : (minScore >= 700 ? 3 : 2);
-            const text = await generateTypingText(diffLevel, room.raceLength);
-            io.to(data.roomCode).emit('matchStart', { players: room.players, text: text });
+            socket.emit('roomJoinedSuccess', { roomCode: data.roomCode, roomSize: room.roomSize });
+            io.to(data.roomCode).emit('playerJoinedLobby', { players: Object.values(room.players) });
+            
+        } else if (room.gameMode === 'turboRacing') {
+            room.players[socket.id] = { id: socket.id, name: data.name, progress: 0, wpm: 0, skillScore: pScore };
+            socket.join(data.roomCode);
+            
+            if (Object.keys(room.players).length === 2) {
+                room.status = 'playing';
+                const pIds = Object.keys(room.players);
+                const minScore = Math.min(room.players[pIds[0]].skillScore, room.players[pIds[1]].skillScore);
+                let diffLevel = minScore < 250 ? 1 : (minScore >= 700 ? 3 : 2);
+                const text = await generateTypingText(diffLevel, room.raceLength);
+                io.to(data.roomCode).emit('matchStart', { players: room.players, text: text });
+            }
             
         } else if (room.gameMode === 'colosseumRaid') {
+            room.players[socket.id] = { id: socket.id, name: data.name, progress: 0, wpm: 0, skillScore: pScore };
+            socket.join(data.roomCode);
+            
             socket.emit('raidState', { roomCode: data.roomCode, boss: room.boss, players: room.players });
             socket.to(data.roomCode).emit('playerJoinedRaid', { id: socket.id, name: data.name });
             
-        } else if (room.gameMode === 'syntaxArena' && Object.keys(room.players).length === 2) {
-            room.status = 'playing';
-            room.corePosition = 0;
-            const pIds = Object.keys(room.players);
-            room.players[pIds[0]].tugDirection = -1;
-            room.players[pIds[1]].tugDirection = 1;
-            const snippet = await generateSyntaxSnippet(room.language);
-            io.to(data.roomCode).emit('syntaxMatchFound', { players: room.players, snippet: snippet, selectedLanguage: room.language });
+        } else if (room.gameMode === 'syntaxArena') {
+            room.players[socket.id] = { id: socket.id, name: data.name, progress: 0, wpm: 0, skillScore: pScore };
+            socket.join(data.roomCode);
             
-        } else if (room.gameMode === 'neonRoyale') {
-            io.to(data.roomCode).emit('playerJoinedLobby', { players: Object.values(room.players) });
+            if(Object.keys(room.players).length === 2) {
+                room.status = 'playing';
+                room.corePosition = 0;
+                const pIds = Object.keys(room.players);
+                room.players[pIds[0]].tugDirection = -1;
+                room.players[pIds[1]].tugDirection = 1;
+                const snippet = await generateSyntaxSnippet(room.language);
+                io.to(data.roomCode).emit('syntaxMatchFound', { players: room.players, snippet: snippet, selectedLanguage: room.language });
+            }
         }
     });
 
+    // --- Colosseum Raid Start ---
+    socket.on('startColosseumRaid', (data) => {
+        const room = activeRooms[data.roomCode];
+        if (room && room.gameMode === 'colosseumRaid') {
+            room.status = 'playing';
+            io.to(data.roomCode).emit('colosseumGameStarting');
+        }
+    });
+
+    // --- Neon Royale Start ---
     socket.on('startNeonRoyale', (data) => {
         const room = activeRooms[data.roomCode];
         if (room && room.gameMode === 'neonRoyale') {
@@ -511,8 +551,10 @@ io.on('connection', (socket) => {
             room.round = 1;
             room.survivors = Object.keys(room.players);
 
-            const botNames = ['Zero', 'Alpha', 'Bravo', 'Nexus', 'Cypher', 'Glitch', 'Proxy', 'Vector', 'Ghost'];
-            while (room.survivors.length < 10) {
+            const maxPlayers = room.roomSize || 10;
+            const botNames = ['Zero', 'Alpha', 'Bravo', 'Nexus', 'Cypher', 'Glitch', 'Proxy', 'Vector', 'Ghost', 'Rogue'];
+            
+            while (room.survivors.length < maxPlayers) {
                 let botId = 'bot_' + Math.random().toString(36).substr(2, 5);
                 let bName = botNames.pop() || 'BotX';
                 room.players[botId] = { id: botId, name: bName, isBot: true, progress: 0, wpm: 0 };
@@ -520,7 +562,16 @@ io.on('connection', (socket) => {
             }
 
             io.to(data.roomCode).emit('neonGameStarting');
-            startNeonRound(data.roomCode);
+
+            let countdown = 5;
+            room.countdownInterval = setInterval(() => {
+                io.to(data.roomCode).emit('neonCountdownTick', { timer: countdown });
+                if (countdown <= 0) {
+                    clearInterval(room.countdownInterval);
+                    startNeonRound(data.roomCode);
+                }
+                countdown--;
+            }, 1000);
         }
     });
 
@@ -529,6 +580,8 @@ io.on('connection', (socket) => {
         if (room && room.players[socket.id]) {
             room.players[socket.id].progress = data.progress;
             room.players[socket.id].wpm = data.wpm;
+            room.players[socket.id].isNitro = data.isNitro;
+            room.players[socket.id].isSpinning = data.isSpinning;
         }
         socket.to(data.roomCode).emit('opponentProgress', data);
     });
@@ -573,6 +626,13 @@ io.on('connection', (socket) => {
                     const pIds = Object.keys(room.players);
                     const minScore = Math.min(room.players[pIds[0]].skillScore, room.players[pIds[1]].skillScore);
                     let diffLevel = minScore < 250 ? 1 : (minScore >= 700 ? 3 : 2);
+
+                    for (let pId of pIds) {
+                        room.players[pId].progress = 0;
+                        room.players[pId].wpm = 0;
+                        room.players[pId].isNitro = false;
+                        room.players[pId].isSpinning = false;
+                    }
 
                     const text = await generateTypingText(diffLevel, room.raceLength || 2);
                     room.status = 'playing';
