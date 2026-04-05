@@ -31,13 +31,24 @@ mongoose.connect(process.env.MONGO_URI)
 let transporter;
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     transporter = nodemailer.createTransport({
-        service: 'gmail', 
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        family: 4, // <-- THE MAGIC FIX: Forces Node to use IPv4 instead of IPv6
         auth: { 
             user: process.env.EMAIL_USER, 
             pass: process.env.EMAIL_PASS.replace(/\s/g, '') 
         }
     });
-    console.log("📧 Email Transporter Configured Successfully.");
+    
+    // Verify connection on startup to catch auth errors immediately
+    transporter.verify(function(error, success) {
+        if (error) {
+            console.error("⚠️ Nodemailer Connection Error:", error);
+        } else {
+            console.log("📧 Email Transporter Configured & Verified Successfully.");
+        }
+    });
 } else {
     console.warn("\n⚠️ WARNING: No EMAIL_USER or EMAIL_PASS found in .env.");
     console.warn("📧 Email Simulation Mode Active: OTPs and Passwords will print here.\n");
