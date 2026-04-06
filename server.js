@@ -8,7 +8,6 @@ const path = require('path');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
 const User = require('./models/User'); 
 
 const app = express();
@@ -27,35 +26,55 @@ mongoose.connect(process.env.MONGO_URI)
     .catch(err => console.error('MongoDB connection error:', err));
 
 
-// --- RENDER-SAFE EMAIL TRANSPORTER SETUP ---
-let transporter;
-if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-    transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587, // Switch to 587 (STARTTLS) instead of 465 (SSL)
-        secure: false, // Must be false for port 587
-        requireTLS: true, // Force TLS connection
-        auth: { 
-            user: process.env.EMAIL_USER, 
-            pass: process.env.EMAIL_PASS.replace(/\s/g, '') 
-        },
-        tls: {
-            ciphers: 'SSLv3',
-            rejectUnauthorized: false // Helps bypass strict internal network proxies
-        }
-    });
-    
-    // Verify connection on startup
-    transporter.verify(function(error, success) {
-        if (error) {
-            console.error("⚠️ Nodemailer Connection Error:", error);
-        } else {
-            console.log("📧 Email Transporter Configured & Verified Successfully.");
-        }
-    });
-} else {
-    console.warn("\n⚠️ WARNING: No EMAIL_USER or EMAIL_PASS found in .env.");
+// --- HTTP EMAIL API SETUP (Bypasses Render SMTP Blocks) ---
+const EMAIL_API_KEY = process.env.EMAIL_API_KEY;
+const SENDER_EMAIL = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+
+if (!EMAIL_API_KEY) {
+    console.warn("\n⚠️ WARNING: No EMAIL_API_KEY found in .env or Render dashboard.");
     console.warn("📧 Email Simulation Mode Active: OTPs and Passwords will print here.\n");
+} else {
+    console.log("📧 HTTP Email API Configured Successfully.");
+}
+
+// --- 100% FREE GOOGLE SCRIPT EMAIL SETUP ---
+const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL;
+
+if (!GOOGLE_SCRIPT_URL) {
+    console.warn("\n⚠️ WARNING: No GOOGLE_SCRIPT_URL found in .env or Render dashboard.");
+    console.warn("📧 Email Simulation Mode Active: OTPs and Passwords will print here.\n");
+} else {
+    console.log("📧 Google Script Mailer Configured Successfully.");
+}
+
+// Wrapper for sending emails via your free Google Apps Script Bridge
+async function sendEmailHTTP(to, subject, text) {
+    if (!GOOGLE_SCRIPT_URL) {
+        console.log(`\n[EMAIL SIMULATION] Sent to: ${to}\nSubject: ${subject}\nBody:\n${text}\n`);
+        return true;
+    }
+
+    try {
+        const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            // Note: Google Scripts handles CORS better with plain text bodies containing JSON
+            headers: { 'Content-Type': 'text/plain' }, 
+            body: JSON.stringify({
+                to: to,
+                subject: subject,
+                text: text
+            })
+        });
+
+        const result = await response.json();
+        if (result.status === "error") {
+            throw new Error(`Google Script failed: ${result.message}`);
+        }
+        return true;
+    } catch (error) {
+        console.error("HTTP Email Sending Error:", error);
+        throw error;
+    }
 }
 
 const otpStore = {}; 
@@ -70,25 +89,15 @@ app.post('/api/send-otp', async (req, res) => {
         const otp = Math.floor(100000 + Math.random() * 900000).toString(); 
         otpStore[email] = { otp, expires: Date.now() + 10 * 60000 }; 
 
-        const mailOptions = {
-            from: process.env.EMAIL_USER || 'system@turbotype.com',
-            to: email,
-            subject: 'TurboType | Security Clearance OTP',
-            text: `Welcome to TurboType.\n\nYour initialization security code is: ${otp}\n\nThis code expires in 10 minutes.`
-        };
+        const subject = 'TurboType | Security Clearance OTP';
+        const text = `Welcome to TurboType.\n\nYour initialization security code is: ${otp}\n\nThis code expires in 10 minutes.`;
 
-        if (transporter) {
-            try {
-                await transporter.sendMail(mailOptions);
-            } catch (mailErr) {
-                console.error("Nodemailer Auth Error:", mailErr);
-                return res.status(500).json({ error: "Email configuration error. Check server logs." });
-            }
-        } else {
-            console.log(`\n[EMAIL SIMULATION] Sent to: ${email} | OTP: ${otp}\n`);
+        try {
+            await sendEmailHTTP(email, subject, text);
+            res.json({ message: "OTP sent successfully." });
+        } catch (mailErr) {
+            return res.status(500).json({ error: "Email configuration error. Check server logs." });
         }
-
-        res.json({ message: "OTP sent successfully." });
     } catch (error) {
         res.status(500).json({ error: "Failed to process request." });
     }
@@ -147,25 +156,15 @@ app.post('/api/forgot-password', async (req, res) => {
         user.password = await bcrypt.hash(newPassword, salt);
         await user.save();
 
-        const mailOptions = {
-            from: process.env.EMAIL_USER || 'system@turbotype.com',
-            to: email,
-            subject: 'TurboType | Password Reset Protocol',
-            text: `Your security override was successful.\n\nYour new temporary password is: ${newPassword}\n\nPlease log in and update this from your Pilot Dossier immediately.`
-        };
+        const subject = 'TurboType | Password Reset Protocol';
+        const text = `Your security override was successful.\n\nYour new temporary password is: ${newPassword}\n\nPlease log in and update this from your Pilot Dossier immediately.`;
 
-        if (transporter) {
-            try {
-                await transporter.sendMail(mailOptions);
-            } catch (mailErr) {
-                console.error("Nodemailer Auth Error:", mailErr);
-                return res.status(500).json({ error: "Email configuration error. Check server logs." });
-            }
-        } else {
-            console.log(`\n[EMAIL SIMULATION] Sent to: ${email} | NEW PASSWORD: ${newPassword}\n`);
+        try {
+            await sendEmailHTTP(email, subject, text);
+            res.json({ message: "New password dispatched to your email." });
+        } catch (mailErr) {
+            return res.status(500).json({ error: "Email configuration error. Check server logs." });
         }
-
-        res.json({ message: "New password dispatched to your email." });
     } catch (error) {
         res.status(500).json({ error: "Failed to process password reset." });
     }
@@ -312,10 +311,10 @@ async function generateTypingText(difficultyLevel, lengthLevel = 2) {
         let text = result.response.text().replace(/\n/g, ' ').trim();
         
         // THE CLEANUP: Forcefully convert any fancy typographic symbols into standard keyboard characters
-        text = text.replace(/[—–]/g, '-');   // Convert em/en-dashes to standard hyphen
-        text = text.replace(/[“”]/g, '"');   // Convert smart double quotes to standard quote
-        text = text.replace(/[‘’]/g, "'");   // Convert smart single quotes to standard apostrophe
-        text = text.replace(/…/g, '...');    // Convert ellipsis to three standard periods
+        text = text.replace(/[—–]/g, '-');   
+        text = text.replace(/[“”]/g, '"');   
+        text = text.replace(/[‘’]/g, "'");   
+        text = text.replace(/…/g, '...');    
         
         if (difficultyLevel === 1) text = text.toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ');
         return text;
@@ -548,7 +547,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- Colosseum Raid Start ---
     socket.on('startColosseumRaid', (data) => {
         const room = activeRooms[data.roomCode];
         if (room && room.gameMode === 'colosseumRaid') {
@@ -557,7 +555,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- Neon Royale Start ---
     socket.on('startNeonRoyale', (data) => {
         const room = activeRooms[data.roomCode];
         if (room && room.gameMode === 'neonRoyale') {
