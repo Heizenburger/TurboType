@@ -18,9 +18,9 @@ By leveraging **"Flow State" psychology**, the system adapts to the user's typin
 ## 🎮 Game Modes
 
 ### ⚔️ 1. Samurai Survival (Single Player)
-* **Objective:** Defend yourself against waves of enemies by typing words before they reach you.
+* **Objective:** Defend yourself against endless waves of enemies traversing a multi-layered, parallax-scrolling Japanese pixel-art environment.
 * **Mechanics:**
-    * **Range Check:** Enemies can only be killed when they enter "Kill Range."
+    * **Dynamic Combat:** The engine calculates distance in real-time, automatically switching the player's attack animation from throwing ranged Kunais to executing close-quarters Sword slashes.
     * **Adaptive Difficulty:** Enemy speed, damage, and word complexity scale dynamically based on your global Skill Score.
     * **Health System:** Missed words or close-range hits drain your HP.
 
@@ -28,7 +28,7 @@ By leveraging **"Flow State" psychology**, the system adapts to the user's typin
 * **Objective:** Race against a live opponent by typing a paragraph faster and more accurately.
 * **Mechanics:**
     * **Real-time Sync:** Uses **Socket.io** to sync car positions instantly across clients.
-    * **AI Generation:** Integrates **Google Gemini API** to dynamically generate custom track text based on the lobby's skill ceiling.
+    * **AI Generation:** Integrates the **Google Gemini API** to dynamically generate custom track text based on the lobby's skill ceiling.
     * **Hazards & Nitro:** Perfect streaks trigger Nitro boosts, while typos on "Hazard" words cause your car to spin out and lose progress.
 
 ### 💻 3. Syntax Arena (PvP Tug-of-War)
@@ -40,8 +40,17 @@ By leveraging **"Flow State" psychology**, the system adapts to the user's typin
 ### 🐉 4. Colosseum Raid (Co-op PvE)
 * **Objective:** Team up with other players in real-time to defeat a massive Global Boss with a 5000 HP pool.
 * **Mechanics:**
-    * **Shared Server State:** All players in the room attack the same boss by typing epic lore. Longer words deal more damage.
+    * **Surging Combo System:** Maintain accuracy to build a damage multiplier (up to 3.0x) for critical hits, resetting instantly upon a typo.
+    * **Shared Server State:** All players in the room attack the same seamlessly masked boss sprite by typing epic lore. 
     * **Crash Recovery:** Disconnects are handled gracefully, allowing players 60 seconds to rejoin the active raid without losing progress.
+
+### 👑 5. Neon Royale (Massive Multiplayer)
+* **Objective:** Survive a high-stakes typing battle royale against up to 10 players (or intelligent AI bots).
+* **Mechanics:** * **Elimination Rounds:** The slowest typist at the end of the countdown—or anyone who fails to finish the text in time—is eliminated from the lobby.
+    * **Bot Integration:** Lobbies automatically backfill with AI racers calibrated to Easy, Medium, or Hard speeds to ensure instant matchmaking.
+
+### 🧠 6. Turbo Learn (Educational)
+* **Objective:** A stress-free, untimed environment designed purely for mastering complex technical vocabulary and muscle-memory retention.
 
 ---
 
@@ -51,7 +60,8 @@ By leveraging **"Flow State" psychology**, the system adapts to the user's typin
 * **Backend:** Node.js & Express.js
 * **Real-time Communication:** Socket.io
 * **Database & Auth:** MongoDB, Mongoose, JWT (JSON Web Tokens)
-* **Artificial Intelligence:** Google Generative AI (Gemini 2.5 Flash)
+* **Email / Password Recovery:** Resend HTTP API
+* **Artificial Intelligence:** Google Generative AI (Gemini 3.1 Flash-Lite)
 * **Assets:** Custom Pixel Art (Aseprite)
 
 ---
@@ -63,6 +73,7 @@ Since this project uses a persistent database, secure authentication, and AI fea
 * [Node.js](https://nodejs.org/) installed (v16+ recommended).
 * A free [MongoDB Atlas](https://www.mongodb.com/atlas) Cluster URI.
 * A free [Google Gemini API Key](https://aistudio.google.com/).
+* A free [Resend API Key](https://resend.com/) for email functionality.
 
 **Steps:**
 1.  **Clone the Repository:**
@@ -83,6 +94,8 @@ Since this project uses a persistent database, secure authentication, and AI fea
       MONGO_URI=your_mongodb_connection_string
       JWT_SECRET=your_super_secret_jwt_key
       GEMINI_API_KEY=your_gemini_api_key
+      EMAIL_API_KEY=your_resend_api_key
+      SENDER_EMAIL=your_verified_resend_email
       PORT=3000
       ```
 
