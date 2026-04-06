@@ -32,14 +32,14 @@
 </head>
 <body>
 
-    <div id="loading-screen" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-family: monospace; color: #3b82f6;">
+    <div id="loading-screen" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-family: monospace; color: #e11d48;">
         INITIALIZING JAPAN PROTOCOLS...
     </div>
 
     <div id="game-ui" style="display: none;">
         <div class="stats-bar">
-            <div>WAVE: <span id="ui-wave">1</span></div>
-            <div style="margin-top: 5px;">SCORE: <span id="ui-score">0</span></div>
+            <div>WAVE: <span id="ui-wave" style="color: #fff;">1</span></div>
+            <div style="margin-top: 5px;">SCORE: <span id="ui-score" style="color: #fff;">0</span></div>
             <div class="hp-bar-container">
                 <div id="ui-hp-fill" class="hp-fill"></div>
             </div>
@@ -56,10 +56,10 @@
 
     <div id="end-screen" class="modal">
         <div class="modal-box">
-            <h1 class="arcade-title" style="margin-top: 0; color: #ef4444; text-shadow: 0 0 15px rgba(239, 68, 68, 0.5);">OVERWHELMED</h1>
+            <h1 class="arcade-title" style="margin-top: 0;">OVERWHELMED</h1>
             <div style="font-size: 1.2rem; color: #cbd5e1; margin-bottom: 20px; font-family: monospace;">
-                <p>WAVES CLEARED: <span id="final-wave" style="color: #60a5fa; font-weight: bold;">--</span></p>
-                <p>SCORE: <span id="final-score" style="color: #60a5fa; font-weight: bold;">--</span></p>
+                <p>WAVES CLEARED: <span id="final-wave" style="color: #facc15; font-weight: bold;">--</span></p>
+                <p>SCORE: <span id="final-score" style="color: #facc15; font-weight: bold;">--</span></p>
                 <p>SPEED: <span id="final-wpm" style="color: #10b981; font-weight: bold;">--</span> WPM</p>
             </div>
             <p id="save-status" style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 20px;">Saving Combat Logs...</p>

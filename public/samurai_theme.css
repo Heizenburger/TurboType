@@ -1,5 +1,5 @@
 body {
-    background: #000; /* Darker black for better contrast with pixel art */
+    background: #000;
     color: #e2e8f0;
     font-family: "Inter", sans-serif;
     margin: 0;
@@ -7,16 +7,16 @@ body {
 }
 
 #ui-container {
-    border-color: #3b82f6;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+    border-color: #e11d48;
+    box-shadow: 0 0 20px rgba(225, 29, 72, 0.2);
     background: rgba(15, 23, 42, 0.85);
     backdrop-filter: blur(10px);
 }
 
 .arcade-title {
-    color: #60a5fa;
+    color: #e11d48;
     text-align: center;
-    text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    text-shadow: 0 0 15px rgba(225, 29, 72, 0.5);
     font-family: monospace;
     font-weight: 900;
     letter-spacing: 2px;
@@ -29,12 +29,12 @@ body {
     background: rgba(15, 23, 42, 0.8);
     padding: 15px;
     border-radius: 8px;
-    border: 1px solid #3b82f6;
+    border: 1px solid #e11d48;
     font-family: monospace;
     font-size: 1.2rem;
     font-weight: bold;
-    color: #93c5fd;
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+    color: #facc15;
+    box-shadow: 0 0 15px rgba(225, 29, 72, 0.3);
     z-index: 100;
 }
 
@@ -59,14 +59,14 @@ body {
 
 .wave-announcement {
     position: absolute;
-    top: 30%;
+    top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 5rem;
     font-weight: 900;
     font-family: monospace;
-    color: #60a5fa;
-    text-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
+    color: #e11d48;
+    text-shadow: 0 0 30px rgba(225, 29, 72, 0.8);
     z-index: 200;
     opacity: 0;
     pointer-events: none;
@@ -75,7 +75,7 @@ body {
 
 .wave-announcement.show {
     opacity: 1;
-    transform: translate(-50%, -40%);
+    transform: translate(-50%, -50%) scale(1.1); /* Adds a slight pop effect */
 }
 
 #target-input {
@@ -86,14 +86,28 @@ body {
 
 .back-btn {
     position: absolute; top: 20px; right: 20px;
-    background: rgba(59, 130, 246, 0.1); border: 2px solid #3b82f6; color: #3b82f6;
+    background: rgba(225, 29, 72, 0.1); border: 2px solid #e11d48; color: #e11d48;
     padding: 8px 15px; border-radius: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer;
     font-family: monospace; font-weight: bold; font-size: 1rem; transition: 0.2s; z-index: 100; text-decoration: none;
 }
-.back-btn:hover { background: #3b82f6; color: white; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+.back-btn:hover { background: #e11d48; color: white; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(225, 29, 72, 0.4); }
 
 .modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 1000; }
-.modal-box { background: #0f172a; padding: 40px; border-radius: 16px; border: 2px solid #3b82f6; text-align: center; color: white; max-width: 450px; box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3); }
+.modal-box { background: #0f172a; padding: 40px; border-radius: 16px; border: 2px solid #e11d48; text-align: center; color: white; max-width: 450px; box-shadow: 0 10px 40px rgba(225, 29, 72, 0.3); }
 .modal-btn { padding: 12px 24px; margin: 10px 5px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s; font-family: monospace; font-size: 1.1rem; }
 .modal-btn:hover { transform: translateY(-2px); }
-.btn-primary { background: #3b82f6; color: white; }
+.btn-primary { background: #e11d48; color: white; }
+
+#game-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none; /* Lets you click the game canvas behind the UI */
+    z-index: 10;
+}
+
+#game-ui > * {
+    pointer-events: auto; /* Re-enables clicks for the abort button and inputs */
+}
