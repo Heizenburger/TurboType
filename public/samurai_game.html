@@ -10,11 +10,30 @@
     <script>
         if (!localStorage.getItem('token')) window.location.href = 'index.html';
     </script>
+    <style>
+        /* --- PAGE ONLOAD ANIMATIONS --- */
+        @keyframes samuraiReveal {
+            0% { opacity: 0; filter: blur(15px) grayscale(100%); transform: translate(-50%, -30%); letter-spacing: -10px; }
+            100% { opacity: 1; filter: blur(0) grayscale(0%); transform: translate(-50%, -50%); letter-spacing: 2px; }
+        }
+        #loading-screen {
+            animation: samuraiReveal 2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            white-space: nowrap;
+        }
+
+        @keyframes gameUiFade {
+            0% { opacity: 0; transform: scale(1.02); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        #game-ui {
+            animation: gameUiFade 1s ease-out forwards;
+        }
+    </style>
 </head>
 <body>
 
     <div id="loading-screen" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-family: monospace; color: #3b82f6;">
-        INITIALIZING COMBAT PROTOCOLS...
+        INITIALIZING JAPAN PROTOCOLS...
     </div>
 
     <div id="game-ui" style="display: none;">

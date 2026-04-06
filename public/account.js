@@ -35,19 +35,17 @@ function updateProgressBar(barId, wins, played) {
     }
     
     const winRate = (wins / played) * 100;
-    // Delay the width expansion so it triggers after the CSS boot-up animation
     setTimeout(() => {
         bar.style.width = `${winRate}%`;
         
-        // Dynamic Neon Colors
         if (winRate >= 50) {
-            bar.style.backgroundColor = '#10b981'; // Success Green
+            bar.style.backgroundColor = '#10b981'; 
             bar.style.color = '#10b981';
         } else if (winRate >= 30) {
-            bar.style.backgroundColor = '#f59e0b'; // Warning Orange
+            bar.style.backgroundColor = '#f59e0b'; 
             bar.style.color = '#f59e0b';
         } else {
-            bar.style.backgroundColor = '#ef4444'; // Danger Red
+            bar.style.backgroundColor = '#ef4444'; 
             bar.style.color = '#ef4444';
         }
     }, 800); 
@@ -55,24 +53,24 @@ function updateProgressBar(barId, wins, played) {
 
 function populateDashboard(user) {
     let dbAvatar = user.avatar;
-    if (dbAvatar && !dbAvatar.startsWith('http')) dbAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=Bot${dbAvatar}`;
+    // FIX: Removed the extra "Bot" string from the URL generator
+    if (dbAvatar && !dbAvatar.startsWith('http')) dbAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${dbAvatar}`;
     
     document.getElementById('profile-avatar-large').src = dbAvatar;
     document.getElementById('profile-gamertag-large').innerText = user.gamertag;
     document.getElementById('update-gamertag').value = user.gamertag;
 
-    // Set Dynamic Hacker Rank based on Skill Score
     const score = user.skillScore || 0;
     const rankEl = document.getElementById('hacker-rank');
     if (score >= 1500) {
         rankEl.innerText = "CYBER NINJA";
-        rankEl.style.color = "#a855f7"; // Purple
+        rankEl.style.color = "#a855f7"; 
     } else if (score >= 500) {
         rankEl.innerText = "NETRUNNER";
-        rankEl.style.color = "#3b82f6"; // Blue
+        rankEl.style.color = "#3b82f6"; 
     } else {
         rankEl.innerText = "SCRIPT KIDDIE";
-        rankEl.style.color = "#94a3b8"; // Slate
+        rankEl.style.color = "#94a3b8"; 
     }
 
     document.getElementById('skill-score').innerText = score;
@@ -92,7 +90,6 @@ function populateDashboard(user) {
     document.getElementById('syntax-wins').innerText = synWins;
     updateProgressBar('syntax-bar', synWins, synPlayed);
 
-    // NEW: Populating Neon Royale Stats
     const neonWins = user.games?.neonRoyale?.wins || 0;
     const neonPlayed = user.games?.neonRoyale?.played || 0;
     document.getElementById('neon-played').innerText = neonPlayed;

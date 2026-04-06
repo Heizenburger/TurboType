@@ -16,8 +16,52 @@
             }
         }
     </script>
+    <style>
+        /* --- NEW INTRO OVERLAY --- */
+        #intro-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #020617;
+            z-index: 3000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 1s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        #big-typing-title {
+            font-size: 6vw;
+            letter-spacing: 15px;
+            color: #10b981;
+            text-shadow: 0 0 30px rgba(16, 185, 129, 0.8);
+            font-family: monospace;
+            white-space: nowrap;
+        }
+
+        .typing-cursor::after {
+            content: '_';
+            animation: blink 1s step-start infinite;
+            color: #10b981;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .avatar-gallery {
+            display: flex; gap: 12px; flex-wrap: wrap; max-height: 160px; overflow-y: auto;
+            justify-content: center; padding: 15px; background: rgba(0,0,0,0.4); 
+            border-radius: 8px; border: 1px solid #334155; margin-bottom: 20px;
+        }
+        .avatar-option {
+            width: 50px; height: 50px; border-radius: 50%; cursor: pointer; 
+            border: 2px solid transparent; background: rgba(255,255,255,0.05); transition: 0.2s;
+        }
+        .avatar-option:hover { transform: scale(1.1); background: rgba(255,255,255,0.1); }
+        .avatar-option.selected { border-color: #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.6); background: rgba(16, 185, 129, 0.2); }
+    </style>
 </head>
 <body>
+
+    <div id="intro-overlay">
+        <h1 id="big-typing-title" class="typing-cursor"></h1>
+    </div>
 
     <div class="keyboard-bg" id="key-bg">
         <div class="key-wrapper" style="left: 10%; animation-duration: 12s; animation-delay: 0s;"><div class="floating-key key-blue">W</div></div>
@@ -32,18 +76,21 @@
         <div class="key-wrapper" style="left: 50%; animation-duration: 14s; animation-delay: 9s;"><div class="floating-key key-red">ALT</div></div>
     </div>
 
-    <div id="ui-container" class="neon-container">
-        <h1 class="arcade-title">TURBO TYPE</h1>
+    <div id="ui-container" class="neon-container" style="opacity: 0; transition: opacity 1s ease;">
+        <h1 class="arcade-title" id="main-title" style="text-shadow: 0 0 20px rgba(59, 130, 246, 0.8);">TURBO TYPE</h1>
         
         <div id="login-section">
             <h2 style="color: #94a3b8; text-align: center; font-size: 1rem; letter-spacing: 2px;">SYSTEM LOGIN</h2>
             <input type="text" id="login-id" class="diff-select auth-input" placeholder="Email or Gamertag">
             <input type="password" id="login-pass" class="diff-select auth-input" placeholder="Password">
             
-            <p id="auth-error" style="color: #ef4444; display: none; text-align: center; font-weight: bold; margin-top: 10px; font-size: 0.9rem;"></p>
+            <p id="auth-error-login" style="color: #ef4444; display: none; text-align: center; font-weight: bold; margin-top: 10px; font-size: 0.9rem;"></p>
             
             <button id="login-btn" class="auth-btn">ENTER MAINFRAME</button>
-            <span class="toggle-link" onclick="toggleAuth()">Need an account? Init Signup_</span>
+            <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                <span class="toggle-link" onclick="switchSection('forgot-section')">Forgot Password?</span>
+                <span class="toggle-link" onclick="switchSection('signup-section')">Init Signup_</span>
+            </div>
         </div>
 
         <div id="signup-section" style="display: none;">
@@ -54,60 +101,54 @@
             
             <p style="text-align: left; margin: 15px 0 5px 0; color: #94a3b8; font-size: 0.85rem; font-weight: bold;">SELECT AVATAR:</p>
             
-            <div style="display: flex; gap: 10px; justify-content: space-between; margin-bottom: 20px;">
-                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Ninja" class="avatar-option selected" data-avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Ninja" onclick="selectAvatar(this)" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.5); background: rgba(255,255,255,0.1); transition: 0.2s;">
-                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Racer" class="avatar-option" data-avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Racer" onclick="selectAvatar(this)" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; background: rgba(255,255,255,0.1); transition: 0.2s;">
-                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Hacker" class="avatar-option" data-avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Hacker" onclick="selectAvatar(this)" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; background: rgba(255,255,255,0.1); transition: 0.2s;">
-                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Cyborg" class="avatar-option" data-avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Cyborg" onclick="selectAvatar(this)" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; background: rgba(255,255,255,0.1); transition: 0.2s;">
-                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Ghost" class="avatar-option" data-avatar="https://api.dicebear.com/7.x/bottts/svg?seed=Ghost" onclick="selectAvatar(this)" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; background: rgba(255,255,255,0.1); transition: 0.2s;">
-            </div>
+            <div class="avatar-gallery" id="avatar-gallery"></div>
+            <input type="hidden" id="reg-avatar" value="Ninja">
+
+            <p id="auth-error-signup" style="color: #ef4444; display: none; text-align: center; font-weight: bold; margin-top: 10px; font-size: 0.9rem;"></p>
+
+            <button id="signup-btn" class="auth-btn auth-btn-green">TRANSMIT CREDENTIALS</button>
+            <span class="toggle-link" style="display: block; text-align: center; margin-top: 15px;" onclick="switchSection('login-section')">< Return to Login</span>
+        </div>
+
+        <div id="otp-section" style="display: none;">
+            <h2 style="color: #3b82f6; text-align: center; font-size: 1rem; letter-spacing: 2px;">SECURITY CLEARANCE REQUIRED</h2>
+            <p style="color: #cbd5e1; text-align: center; font-size: 0.9rem; margin-bottom: 20px;">A 6-digit OTP has been dispatched to your email.</p>
+            <input type="text" id="otp-code" class="diff-select auth-input" placeholder="Enter 6-Digit Code" style="text-align: center; font-size: 1.5rem; letter-spacing: 10px;">
             
-            <input type="hidden" id="reg-avatar" value="https://api.dicebear.com/7.x/bottts/svg?seed=Ninja">
+            <p id="auth-error-otp" style="color: #ef4444; display: none; text-align: center; font-weight: bold; margin-top: 10px; font-size: 0.9rem;"></p>
 
-            <script>
-                function selectAvatar(imgEl) {
-                    // Reset all borders
-                    document.querySelectorAll('.avatar-option').forEach(el => {
-                        el.style.borderColor = 'transparent';
-                        el.style.boxShadow = 'none';
-                        el.classList.remove('selected');
-                    });
-                    // Highlight selected
-                    imgEl.style.borderColor = '#10b981';
-                    imgEl.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.5)';
-                    imgEl.classList.add('selected');
-                    // Save to hidden input
-                    document.getElementById('reg-avatar').value = imgEl.getAttribute('data-avatar');
-                }
-            </script>
+            <button id="verify-btn" class="auth-btn" style="background: #3b82f6; color: white;">VERIFY & INITIALIZE</button>
+            <span class="toggle-link" style="display: block; text-align: center; margin-top: 15px;" onclick="switchSection('signup-section')">< Edit Details</span>
+        </div>
 
-            <button id="signup-btn" class="auth-btn auth-btn-green">CREATE NODE</button>
-            <span class="toggle-link" onclick="toggleAuth()">< Return to Login</span>
+        <div id="forgot-section" style="display: none;">
+            <h2 style="color: #f59e0b; text-align: center; font-size: 1rem; letter-spacing: 2px;">PASSWORD OVERRIDE</h2>
+            <p style="color: #cbd5e1; text-align: center; font-size: 0.9rem; margin-bottom: 20px;">Enter your registered email. We will transmit a new temporary password to your inbox.</p>
+            <input type="email" id="forgot-email" class="diff-select auth-input" placeholder="Registered Email">
+            
+            <p id="auth-error-forgot" style="color: #ef4444; display: none; text-align: center; font-weight: bold; margin-top: 10px; font-size: 0.9rem;"></p>
+
+            <button id="reset-btn" class="auth-btn" style="background: #f59e0b; color: #000;">TRANSMIT NEW PASSWORD</button>
+            <span class="toggle-link" style="display: block; text-align: center; margin-top: 15px;" onclick="switchSection('login-section')">< Cancel Override</span>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('mousemove', (e) => {
-            const keys = document.querySelectorAll('.floating-key');
-            keys.forEach(key => {
-                const rect = key.getBoundingClientRect();
-                const keyCenterX = rect.left + rect.width / 2;
-                const keyCenterY = rect.top + rect.height / 2;
-                const dist = Math.hypot(e.clientX - keyCenterX, e.clientY - keyCenterY);
-
-                if (dist < 150) {
-                    // Magnetic Repel Effect + Glow Activation
-                    const pushX = ((keyCenterX - e.clientX) / dist) * 30;
-                    const pushY = ((keyCenterY - e.clientY) / dist) * 30;
-                    key.style.transform = `translate(${pushX}px, ${pushY}px) scale(1.2)`;
-                    key.classList.add('active');
-                } else {
-                    key.style.transform = `translate(0px, 0px) scale(1)`;
-                    key.classList.remove('active');
-                }
-            });
-        });
-    </script>
     <script src="auth.js"></script>
+    <script>
+        // Allow submitting the login form by pressing the "Enter" key
+        const loginIdInput = document.getElementById('login-id');
+        const loginPassInput = document.getElementById('login-pass');
+        const loginBtn = document.getElementById('login-btn');
+
+        function triggerLoginOnEnter(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                loginBtn.click();
+            }
+        }
+
+        loginIdInput.addEventListener('keypress', triggerLoginOnEnter);
+        loginPassInput.addEventListener('keypress', triggerLoginOnEnter);
+    </script>
 </body>
 </html>

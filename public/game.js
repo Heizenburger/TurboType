@@ -79,14 +79,9 @@ function gameLoop() {
         carBouncePhase += 0.5;
         const bounceY = Math.sin(carBouncePhase) * 1.2;
         
-        // Calculate difference in WPM for immediate physical responsiveness
         let wpmDiff = currentWPM - opponentWPM;
-        
-        // Calculate difference in actual text progress to ensure the true leader is visually ahead
         let progressDiff = (latestMyProgress - latestOpponentProgress) * 600; 
 
-        // Blend them together and use a wider boundary (-400 to 400)
-        // This guarantees the opponent car (starting at 5vw) can bridge the gap and overtake the player (starting at 15vw)
         let combinedDiff = (wpmDiff * 3.5) + progressDiff;
         let cappedDiff = Math.max(-400, Math.min(400, combinedDiff)); 
 
@@ -220,20 +215,18 @@ socket.on('matchStart', (data) => {
 
 socket.on('rejoinSuccess', (data) => {
     localStorage.setItem('activeRoomUrl', window.location.href);
-    document.getElementById('end-screen').style.display = 'none'; // FIX: Ensures modal closes for rematch!
-    
+    document.getElementById('end-screen').style.display = 'none';
     setupGameScreen(data);
     
-    // Ensure everything resets correctly and the cars sit back at the start line
     isRacing = false;
     currentP1X = 0; currentP2X = 0;
+    p1TireRotation = 0; p2TireRotation = 0; bgSpeed = 0;
     
     const p1Container = document.getElementById('p1-car');
     const p2Container = document.getElementById('p2-car');
     if (p1Container) { p1Container.classList.remove('nitro-active'); p1Container.style.transform = `translate(0px, 0px)`; }
     if (p2Container) { p2Container.classList.remove('nitro-active'); p2Container.style.transform = `translate(0px, 0px)`; }
     
-    // Trigger the 5 second countdown before the race logic officially triggers
     startCountdown();
 });
 
@@ -301,6 +294,7 @@ function beginRace() {
     currentWPM = 0; opponentWPM = 0; consecutiveCorrectWords = 0; currentWordErrors = 0;
     
     currentP1X = 0; currentP2X = 0;
+    p1TireRotation = 0; p2TireRotation = 0; bgSpeed = 0;
     currentWordHazardFailed = false; activePenaltyUntil = 0;
     
     displayMyWPM = 0; displayOppWPM = 0; 
@@ -536,7 +530,6 @@ async function finishRace(isWinner, customMsg = null) {
 }
 
 socket.on('opponentDisconnected', (data) => {
-    // If the opponent leaves while the game screen is active and not finished, auto-win!
     if (!hasFinished && document.getElementById('game-ui').style.display === 'flex') {
         finishRace(true, "Opponent abandoned the race.");
         document.getElementById('connection-alert').style.display = 'none';
@@ -545,6 +538,7 @@ socket.on('opponentDisconnected', (data) => {
         document.getElementById('connection-alert').style.display = 'block';
     }
 });
+
 socket.on('opponentReconnected', (data) => { document.getElementById('connection-alert').style.display = 'none'; });
 
 socket.on('forfeitWin', (data) => {
