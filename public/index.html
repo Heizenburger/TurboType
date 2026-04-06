@@ -134,5 +134,21 @@
     </div>
 
     <script src="auth.js"></script>
+    <script>
+        // Allow submitting the login form by pressing the "Enter" key
+        const loginIdInput = document.getElementById('login-id');
+        const loginPassInput = document.getElementById('login-pass');
+        const loginBtn = document.getElementById('login-btn');
+
+        function triggerLoginOnEnter(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                loginBtn.click();
+            }
+        }
+
+        loginIdInput.addEventListener('keypress', triggerLoginOnEnter);
+        loginPassInput.addEventListener('keypress', triggerLoginOnEnter);
+    </script>
 </body>
 </html>
