@@ -16,27 +16,6 @@
         --racing-orange: #f59e0b;
       }
 
-      /* --- PAGE ONLOAD ANIMATIONS --- */
-      @keyframes raceIn {
-        0% { opacity: 0; transform: translateX(-150px) skewX(25deg); filter: blur(5px); }
-        60% { opacity: 1; transform: translateX(15px) skewX(-10deg); filter: blur(0); }
-        80% { transform: translateX(-5px) skewX(5deg); }
-        100% { transform: translateX(0) skewX(0deg); }
-      }
-
-      @keyframes fadeInGame {
-        0% { opacity: 0; transform: translateX(50px); }
-        100% { opacity: 1; transform: translateX(0); }
-      }
-
-      #ui-container {
-        animation: raceIn 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-      }
-
-      #game-ui {
-        animation: fadeInGame 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      }
-
       /* --- ERADICATE THE BLUE BACKGROUND --- */
       body {
         background: #050505 !important;

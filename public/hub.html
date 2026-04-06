@@ -9,42 +9,6 @@
         if (!localStorage.getItem('token')) window.location.href = 'index.html';
     </script>
     <style>
-        /* --- PAGE ONLOAD ANIMATIONS --- */
-        @keyframes hubContainerLoad {
-            0% { opacity: 0; transform: scale(0.96); filter: blur(10px); }
-            100% { opacity: 1; transform: scale(1); filter: blur(0); }
-        }
-
-        @keyframes cardPop {
-            0% { opacity: 0; transform: translateY(30px) scale(0.9); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        @keyframes dropInProfile {
-            0% { opacity: 0; transform: translateY(-50px) scale(0.5); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        #ui-container {
-            animation: hubContainerLoad 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        .profile-dropdown {
-            animation: dropInProfile 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-
-        /* Staggered Element Entrances */
-        .arcade-title, .subtitle { animation: cardPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        
-        .menu > .neon { animation: cardPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s forwards; opacity: 0; }
-        .grid-2x2 > .samurai { animation: cardPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s forwards; opacity: 0; }
-        .grid-2x2 > .racing { animation: cardPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.3s forwards; opacity: 0; }
-        .grid-2x2 > .syntax { animation: cardPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.4s forwards; opacity: 0; }
-        .grid-2x2 > .raid { animation: cardPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.5s forwards; opacity: 0; }
-        .learn-container-gap .learn { animation: cardPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.6s forwards; opacity: 0; }
-        
-        .credits-footer { animation: cardPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.8s forwards; opacity: 0; }
-
         /* Hub Specific Centering & Margin Fixes */
         #ui-container {
             margin-top: 8vh !important; 

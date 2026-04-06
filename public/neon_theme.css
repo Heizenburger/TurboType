@@ -14,30 +14,6 @@ body {
   overflow: hidden;
 }
 
-/* --- PAGE ONLOAD ANIMATIONS --- */
-@keyframes neonDropIn {
-    0% { opacity: 0; transform: perspective(1200px) rotateX(-30deg) translateY(-80px) scale(0.9); }
-    100% { opacity: 1; transform: perspective(1200px) rotateX(0deg) translateY(0) scale(1); }
-}
-
-@keyframes fadeInGame {
-    0% { opacity: 0; transform: scale(1.02) translateY(20px); }
-    100% { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-#ui-container {
-  max-width: 900px;
-  margin: 40px auto;
-  position: relative;
-  z-index: 10;
-  transform-origin: top center;
-  animation: neonDropIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-#game-ui {
-  animation: fadeInGame 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
 /* --- INTENSE BATTLE ROYALE DATA TUNNEL BACKGROUND --- */
 .royale-arena-bg {
   position: fixed;
@@ -162,6 +138,13 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(6, 182, 212, 0.15);
+}
+
+#ui-container {
+  max-width: 900px;
+  margin: 40px auto;
+  position: relative;
+  z-index: 10;
 }
 
 .arcade-title {
